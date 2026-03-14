@@ -1,2 +1,4 @@
 # space-dogs-ghw-cloud
 Repository for the Space Dogs Cloud Telemetry API project developed during Global Hack Week: Cloud. It contains the backend REST API, a static web interface, and technical documentation for a cloud-based system that simulates and displays satellite telemetry data.
+
+Telemetry dashboard featuring animated dogs in astronaut suits monitoring space missions. The dashboard displays various charts and graphs including telemetry, oxygen levels, velocity, and system status. Two dogs are shown inside a spacecraft, appearing happy and engaged. The environment is futuristic with a space background and digital interface elements. Text in the image includes Space Dogs Telemetry Dashboard, Launch Mission, Export Data, Set Alerts, Mission Time 7:00, and names of dogs such as Laika, Rover, Sputnik, and Nova. The emotional tone is playful and adventurous, emphasizing teamwork and exploration.
