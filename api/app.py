@@ -1,16 +1,17 @@
 from flask import Flask, jsonify
 import random
 import datetime
+import sqlite3
+from database import init_db
 
-# Create the Flask application
 app = Flask(__name__)
 
-# Root route to confirm the API is running
+init_db()
+
 @app.route("/")
 def home():
     return "Space Dogs Telemetry API is running"
 
-# Telemetry endpoint
 @app.route("/telemetry")
 def telemetry():
 
@@ -22,8 +23,24 @@ def telemetry():
         "subsystem_status": "nominal"
     }
 
+    conn = sqlite3.connect("telemetry.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    INSERT INTO telemetry (temperature, battery_level, signal_strength, timestamp, subsystem_status)
+    VALUES (?, ?, ?, ?, ?)
+    """, (
+        data["temperature"],
+        data["battery_level"],
+        data["signal_strength"],
+        data["timestamp"],
+        data["subsystem_status"]
+    ))
+
+    conn.commit()
+    conn.close()
+
     return jsonify(data)
 
-# Run the Flask development server
 if __name__ == "__main__":
     app.run(debug=True)
