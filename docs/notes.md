@@ -80,3 +80,95 @@ In the Introduction to GitHub challenge, there were no major difficulties, since
 In contrast, the Code with Codespaces challenge was much more difficult due to the length of the instructions, the number of required installations, the challenges involved in loading extensions, writing code for each file, the very slow rebuild processes, and the fact that, despite being an online version of VS Code, it felt slow and somewhat unintuitive to use. The solution was to iterate several times and persevere until we learned how to use this new environment effectively.
 
 So far, we have also validated the use of *mobile devices as a complementary tool* for managing the GitHub repository. On a phone, it is not possible to create folders directly, but it is possible to upload text files and documents. Therefore, the folder structure is created from the laptop, while the phone is used to upload evidence and progress related to projects, hackathons, and webinars.
+
+Sábado 14 de marzo 
+## Development Report – March 14
+
+On March 14, the team worked on the development of the **first functional version of the Space Dogs Cloud Telemetry API**, using **Python** and the **Flask framework**. The main objective was to implement a **/telemetry endpoint** capable of generating and returning **simulated satellite telemetry data in JSON format**, while also documenting the system and performing a basic functional validation of the API.
+
+### Backend Development
+
+José was responsible for the backend implementation. He began by cloning the project repository, configuring the Python environment, and installing the required dependencies. After setting up the development environment, he created the **app.py** file inside the **/api module**, where the API logic was implemented.
+
+Within this file, José developed the **/telemetry endpoint**, which generates simulated telemetry values representing key spacecraft parameters. These include:
+
+* Temperature
+* Battery level
+* Signal strength
+* Timestamp
+* Subsystem status
+
+The endpoint dynamically produces randomized values within realistic ranges to simulate telemetry data that could be received from a satellite or remote system.
+
+Once the implementation was completed, José ran the API locally using **Flask** and accessed the endpoint through a web browser to validate its behavior. The response was successfully generated in **JSON format**, confirming that the endpoint was functioning as expected.
+
+### Issue Encountered and Resolution
+
+During the initial testing phase, an issue appeared when running the API using the command:
+
+```
+python app.py
+```
+
+When accessing the base URL in the browser, the page returned a **404 Not Found** error. After investigating the issue, the team realized that this behavior was expected because the application did not yet define a **root route ("/")**.
+
+To improve the user experience and provide confirmation that the API was running correctly, the code was expanded to include a root endpoint that returns a simple status message.
+
+The updated implementation was as follows:
+
+```python
+from flask import Flask, jsonify
+import random
+import datetime
+
+# Create the Flask application
+app = Flask(__name__)
+
+# Root route to confirm the API is running
+@app.route("/")
+def home():
+    return "Space Dogs Telemetry API is running"
+
+# Telemetry endpoint
+@app.route("/telemetry")
+def telemetry():
+    data = {
+        "temperature": round(random.uniform(15, 40), 2),
+        "battery_level": random.randint(60, 100),
+        "signal_strength": random.randint(70, 100),
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "subsystem_status": "nominal"
+    }
+    return jsonify(data)
+
+# Run the Flask development server
+if __name__ == "__main__":
+    app.run(debug=True)
+```
+
+With this update, the root page now displays the message **"Space Dogs Telemetry API is running"**, confirming that the service is active. When accessing the URL with the **/telemetry** path, the API returns simulated telemetry data in JSON format.
+
+After verifying the correct functionality of the API, José committed the changes to the repository using **Git** and pushed the updated code to **GitHub**.
+
+### Documentation and Functional Review
+
+Maryfer supported the project remotely from her phone by contributing to the **documentation and functional review** of the system. She prepared written notes explaining the purpose of the API, the behavior of the **/telemetry endpoint**, and the meaning of each simulated telemetry variable.
+
+Additionally, she reviewed the API response based on the testing evidence provided by José and verified that:
+
+* The API response was correctly formatted in **JSON**
+* All telemetry variables were present
+* The endpoint returned consistent simulated data
+
+Using this information, she drafted the **endpoint documentation and validation notes**, which were added to the **/docs directory** of the project repository.
+
+### Results of the Day
+
+By the end of the development session, the team successfully achieved the following milestones:
+
+* Implemented a **functional REST API**
+* Generated **simulated telemetry data in JSON format**
+* Conducted **basic endpoint testing**
+* Produced **initial system documentation**
+
+This progress established the **foundational backend infrastructure** for the project. The API can later be expanded to integrate with **cloud databases, monitoring dashboards, or data analysis platforms**, enabling more advanced telemetry processing and visualization capabilities.
