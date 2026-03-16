@@ -1,6 +1,42 @@
-<!--
-Space Dogs Telemetry Dashboard
+<!DOCTYPE html>
+<html>
 
-This page will visualize telemetry data received
-from the backend API during the hackathon project.
--->
+<head>
+    <title>Space Dogs Telemetry Dashboard</title>
+</head>
+
+<body>
+
+<h1>Space Dogs Telemetry Dashboard</h1>
+
+<p><strong>Temperature:</strong> <span id="temperature">--</span></p>
+<p><strong>Battery Level:</strong> <span id="battery">--</span></p>
+<p><strong>Signal Strength:</strong> <span id="signal">--</span></p>
+<p><strong>Timestamp:</strong> <span id="timestamp">--</span></p>
+
+<script>
+
+async function getTelemetry() {
+
+    const response = await fetch("http://127.0.0.1:5000/telemetry");
+
+    const result = await response.json();
+
+    const telemetry = result.data;
+
+    document.getElementById("temperature").textContent = telemetry.temperature;
+
+    document.getElementById("battery").textContent = telemetry.battery_level;
+
+    document.getElementById("signal").textContent = telemetry.signal_strength;
+
+    document.getElementById("timestamp").textContent = telemetry.timestamp;
+
+}
+
+window.onload = getTelemetry;
+
+</script>
+
+</body>
+</html>
