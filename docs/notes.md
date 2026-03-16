@@ -195,18 +195,11 @@ Version 3 added advanced system capabilities such as schema migrations for safe 
 
 Overall, the work completed on March 15 significantly strengthened the backend architecture, reliability, and scalability of the Space Dogs Telemetry API. The system now supports telemetry generation, persistent storage, historical analysis, improved monitoring, and safer API operation, representing a major step toward a realistic spacecraft telemetry monitoring platform.
 
-If you want, I can also make:
 
-a shorter version (for a report or presentation)
-
-or a more academic/technical version for a research document.
-
-
-Puedes agregar más información 
-
-Aquí tienes un resumen más completo y con más información en inglés, manteniendo la estructura del documento pero ampliando los puntos importantes:
+domingo 15 de marzo
 
 Extended Summary – Space Dogs Telemetry System Development (March 15)
+
 During the work session on March 15, the team continued developing the backend infrastructure of the Space Dogs Telemetry Dashboard, focusing on improving telemetry data persistence, API architecture, reliability, and system observability. The work carried out during this session significantly strengthened the system’s ability to simulate and manage spacecraft telemetry data in a realistic and scalable way.
 
 José focused primarily on backend development and system architecture. One of the first tasks was implementing a SQLite database layer inside the API project structure by creating the database.py module. This module is responsible for initializing the database and defining the telemetry table schema. The schema includes fields commonly used in spacecraft telemetry systems such as temperature, battery level, signal strength, timestamp, and subsystem status, along with an automatically incrementing identifier that uniquely tracks every telemetry record.
