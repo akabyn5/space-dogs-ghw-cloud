@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+
+# Database
+api/telemetry.db
+*.db
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
