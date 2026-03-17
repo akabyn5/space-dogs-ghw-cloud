@@ -237,3 +237,149 @@ To improve performance further, a statistics caching mechanism was added so that
 Another important capability added in this stage was the ability for the /telemetry endpoint to accept JSON input via POST requests, allowing users to submit specific telemetry values rather than relying entirely on randomly generated data. Finally, an endpoint was added to export telemetry data as a CSV file, allowing the stored telemetry records to be easily downloaded and analyzed using spreadsheet tools.
 
 Overall, the work completed during the March 15 session significantly enhanced the functionality, reliability, scalability, and realism of the Space Dogs Telemetry API. The system now supports telemetry generation, persistent data storage, historical data analysis, performance monitoring, error handling, and data export capabilities. These improvements represent an important step toward building a fully functional telemetry monitoring platform similar to those used in real spacecraft mission control environments.
+
+lunes 16 de marzo 
+
+# 📊 Activity Log — March 16 (Global Hack Week: Cloud)
+
+On March 16, progress focused on building the telemetry dashboard, integrating frontend and backend, and performing remote system validation. Below is a summarized account of the work completed.
+
+## 1. Frontend Development
+
+José set up the project structure, ensuring the `/web` directory existed, and created `web/index.html` as the dashboard interface.
+
+He built the initial HTML layout, defining four telemetry fields:
+
+* Temperature
+* Battery level
+* Signal strength
+* Timestamp
+
+Each value was represented using `<span>` elements with unique IDs for future dynamic updates. At this stage, the page displayed placeholder values (`"--"`), confirming correct rendering.
+
+## 2. API Integration (Frontend–Backend Communication)
+
+JavaScript was added using `fetch()` to consume the API endpoint:
+
+```
+http://127.0.0.1:5000/telemetry
+```
+
+An asynchronous function was implemented to:
+
+* Send HTTP requests
+* Parse JSON responses
+* Extract telemetry data
+* Update the dashboard dynamically
+
+After adjusting for nested JSON structure (`data` field), the dashboard successfully displayed real-time values.
+
+## 3. Local System Testing
+
+José ran the Flask API and verified:
+
+* Endpoint responsiveness
+* Dynamic updates in the dashboard
+* New values generated on each refresh
+
+It was also confirmed that each request stored data in the SQLite database (`telemetry.db`), validating persistence.
+
+At this point, the system functioned as a complete telemetry pipeline:
+
+**Generation → Storage → Distribution → Visualization**
+
+## 4. Local Network Access Attempt
+
+Flask was configured with:
+
+```
+host="0.0.0.0"
+```
+
+Although local network access worked, remote access failed because private IPs (e.g., `192.168.x.x`, `10.x.x.x`) are not accessible over the internet.
+
+## 5. Solution: Public Tunnel with ngrok
+
+To enable remote access, ngrok was implemented.
+
+An initial misconfiguration (port 80 instead of 5000) caused a 502 error. This was fixed with:
+
+```
+ngrok http 5000
+```
+
+This generated a public URL routing traffic to the local Flask server.
+
+## 6. Remote Validation
+
+Maryfer tested the system from her phone using the public ngrok URL. She:
+
+* Accessed the `/telemetry` endpoint
+* Verified JSON responses
+* Confirmed all telemetry fields
+* Refreshed multiple times to validate dynamic data
+
+This confirmed:
+
+* External accessibility
+* Cross-device functionality
+* Continued database logging
+
+## 7. Test Documentation
+
+Maryfer documented the validation process in:
+
+```
+docs/api-testing.md
+```
+
+Including:
+
+* Test procedure
+* Device used (mobile phone)
+* Endpoint tested
+* Confirmation of correct behavior
+
+## ✅ Final Outcome
+
+By the end of the day, three key milestones were achieved:
+
+* Functional dashboard connected to the API
+* Fully operational telemetry system (frontend + backend + database)
+* Successful remote validation from a different device and location
+
+The system completed its first full operational cycle:
+
+**Telemetry Generation → API → Storage → Dashboard → External Validation**
+
+This represents a solid foundation for a distributed remote monitoring system.
+
+# 🚀 Project Update — Frontend Improvement (`index.html`)
+
+After completing the initial challenge tasks, a significant upgrade was made to `index.html`, transforming it into an interactive **“Mission Control”** dashboard.
+
+The new design adopts a space-inspired aesthetic, featuring a dark interface, monospaced typography for telemetry data, and dynamic visual elements that mimic real monitoring systems.
+
+## 🔧 Technical Improvements
+
+Several key enhancements were implemented:
+
+* A centralized API wrapper (`apiFetch()`) was created to handle all requests, including response validation and error handling.
+* Performance was optimized using `Promise.all()` to execute multiple API calls in parallel.
+* Real-time updates were introduced with `setInterval()` and configurable auto-refresh controls.
+* Advanced data visualization was added, including:
+
+  * Animated bars
+  * SVG circular gauges
+  * Canvas-based trend charts
+* Pagination was integrated directly with the API, along with dynamic search and filtering capabilities.
+* User experience was improved with:
+
+  * Toast notifications
+  * Value animations
+  * Event logs
+  * Keyboard shortcuts
+
+## ⚙️ System Enhancement
+
+The limitation of the previous version (single execution via `window.onload`) was resolved, enabling continuous interaction and dynamic data updates.
