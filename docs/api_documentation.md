@@ -111,3 +111,27 @@ Developers building larger systems can use the API to test integrations with:
 
 Without needing access to real satellite telemetry data.
 
+revision de puntos finales
+## 1. What does `/telemetry/latest` do?
+
+The `/telemetry/latest` endpoint is responsible for **retrieving the most recent telemetry data** recorded in the system.
+
+- It is **read-only** (does not create or modify data).
+- Returns the **latest available record**.
+- Useful for real-time monitoring or dashboards.
+
+---
+
+## 2. Difference between `/telemetry` and `/telemetry/latest`
+
+The main difference lies in their purpose:
+
+### `/telemetry`
+- Used to **send or generate new telemetry data**.
+- Typically uses the **POST** method.
+- Serves to **feed the API with new information**.
+
+### `/telemetry/latest`
+- Used to **retrieve the most recent recorded data**.
+- Typically uses the **GET** method.
+- It is **read-only** and does not modify data.
