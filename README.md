@@ -4,72 +4,68 @@ Repository for the Space Dogs Cloud Telemetry API project developed during Globa
 
 ### 🌌 **Space Dogs Cloud Telemetry API**
 
-**Imagina poder monitorear una nave espacial desde tu laptop.**  
+**Imagine being able to monitor a spacecraft from your laptop.**
 
-Ese es el corazón de **Space Dogs Cloud Telemetry API**: un proyecto completo y funcional que simula, de forma realista y atractiva, cómo se genera, transmite y consume **telemetría espacial** en la nube.
-
----
-
-### ✨ ¿Qué es y cómo funciona?
-
-Se trata de un sistema backend moderno construido con **Python y Flask** que expone un endpoint REST (`/telemetry`).  
-
-Cada vez que lo consultas, genera datos dinámicos y realistas de una nave espacial:
-
-- Temperatura de subsistemas  
-- Nivel de batería  
-- Intensidad de la señal  
-- Estado general del sistema  
-
-Todo entregado en formato **JSON** limpio y listo para usar.  
-
-Puedes conectarlo fácilmente a un frontend web, dashboards, herramientas de análisis o incluso a un agente de IA que tome decisiones en tiempo real.
+That’s exactly what **Space Dogs Cloud Telemetry API** is all about: a clean, functional, and realistic cloud-based system that simulates the generation, transmission, and consumption of **spacecraft telemetry data**.
 
 ---
 
-### 🛠️ Tecnología y buenas prácticas
+### ✨ What is it and how does it work?
 
-El proyecto no solo funciona, está construido con cariño y profesionalismo:
+It’s a modern backend built with **Python and Flask** that exposes a simple yet powerful REST endpoint: `/telemetry`.
 
-- Control de versiones con **GitHub**  
-- Manejo claro de dependencias mediante `requirements.txt`  
-- Validación de entrada para mayor robustez  
-- Arquitectura sencilla pero representativa de sistemas distribuidos reales  
+Every time you call it, the API dynamically generates realistic telemetry data from a spacecraft, including:
 
-Es el equilibrio perfecto entre simplicidad educativa y calidad profesional.
+- System temperature  
+- Battery level  
+- Signal strength  
+- Overall system status  
 
----
-
-### 🎯 ¿Por qué existe este proyecto?
-
-**Space Dogs** nació como una iniciativa educativa y práctica dentro de hackathons como **Global Hack Week**, retos de ciberseguridad y proyectos en la nube.
-
-En vez de ejercicios abstractos y aburridos, te pone en la piel de un ingeniero aeroespacial:  
-
-Tienes que diseñar, construir y analizar un sistema de monitoreo crítico donde **los datos nunca dejan de llegar**.  
-
-Aprendes de forma divertida y profunda:
-
-- Desarrollo backend  
-- Infraestructura en la nube  
-- Análisis de datos en tiempo real  
-- Detección de anomalías  
-- Trabajo en equipo y documentación técnica  
+All delivered in clean **JSON** format, ready to be consumed by a web frontend, dashboards, analytics tools, or even AI agents.
 
 ---
 
-### 🚀 En esencia...
+### 🛠️ Technology & Best Practices
 
-Este proyecto simula el **sistema nervioso** de una misión espacial.  
+This project isn’t just a toy example — it’s built with care and professionalism:
 
-Aunque los datos son sintéticos, el flujo es idéntico al de la vida real: generación continua de telemetría, exposición segura a través de una API, almacenamiento posible y análisis inteligente para detectar problemas antes de que sea tarde.
+- Version control with **GitHub**  
+- Clean dependency management using `requirements.txt`  
+- Input validation for robustness  
+- A simple yet representative architecture of modern distributed systems  
 
-Es una ventana práctica y accesible al fascinante mundo de los sistemas de monitoreo en entornos críticos.
+It strikes the perfect balance between educational simplicity and real-world quality.
 
 ---
 
-¿Listo para despegar?  
+### 🎯 Why does this project exist?
 
-**Space Dogs Cloud Telemetry API** te espera para que construyas, experimentes y sueñes a lo grande. 🌠
+**Space Dogs** was created as a practical and engaging educational initiative for hackathons like **Global Hack Week**, cybersecurity challenges, and cloud computing projects.
 
-*Porque aprender haciendo es mucho más divertido cuando se siente como estar en una misión real.* ✨
+Instead of abstract exercises, it immerses you in a realistic use case: **aerospace telemetry**.
+
+Participants get to experience firsthand how critical systems collect, process, and analyze real-time data. Along the way, they develop valuable skills in:
+
+- Backend development  
+- Cloud infrastructure  
+- Real-time data analysis  
+- Anomaly detection  
+- Collaborative teamwork and technical documentation  
+
+---
+
+### 🚀 In essence...
+
+This system simulates the **nervous system** of a space mission.  
+
+Even though the data is synthetic, the entire flow mirrors real-world scenarios: continuous telemetry generation, secure API exposure, optional database storage, and intelligent analysis to detect critical conditions before they become problems.
+
+It’s a practical, accessible gateway into how monitoring systems work in high-stakes environments — adapted for learning and hands-on experimentation.
+
+---
+
+Ready for launch?  
+
+**Space Dogs Cloud Telemetry API** is waiting for you to build, experiment, and dream big. 🌠
+
+*Because learning by doing is infinitely more exciting when it feels like a real space mission.* ✨
