@@ -114,3 +114,66 @@ Fully contained in `database.py` (with functions like `insert_telemetry()` and `
 - Separates concerns between API routing and data handling  
 - Encapsulates SQLite connection and query execution in reusable functions  
 - Improves code organization and maintainability
+
+## AI-Assisted Behavior
+
+While the system does not implement a full machine learning model, it introduces **intelligent, rule-based behaviors** that simulate an AI-assisted engineering workflow. These behaviors allow the backend to make autonomous decisions, enforce controls, and react dynamically to incoming data — aligning with the type of “intelligence” expected in modern production systems.
+
+### Key AI-Assisted Capabilities
+
+#### Smart Input Validation
+The system automatically evaluates every incoming telemetry payload and rejects invalid data (missing fields or incorrect data types) before it ever reaches the database.
+
+**Location:**  
+Implemented in `app.py` using explicit validation logic before any database operation.
+
+**Why it matters:**  
+This is rule-based decision-making — the API determines whether data is acceptable, preventing invalid inputs from polluting the system.
+
+---
+
+#### Controlled Behavior Management (Rate Limiting)
+The API monitors client behavior in real time and enforces usage limits by tracking request frequency per IP address over time.
+
+**Location:**  
+Implemented in `app.py` with timestamp tracking and HTTP 429 response handling.
+
+**Why it matters:**  
+This creates adaptive control — the system actively regulates how users interact with it, protecting resources without manual intervention.
+
+---
+
+#### Threshold-Based Anomaly Detection (Structured for Extension)
+The validation logic is structured to support threshold-based checks on incoming telemetry, laying the foundation for identifying abnormal conditions.
+
+**Location:**  
+Integrated directly into the input validation flow in `app.py`.
+
+**Why it matters:**  
+This represents a rule-based form of intelligence — enabling the system to detect anomalies autonomously and support future automated responses.
+
+---
+
+#### System Observability & Awareness
+Continuous logging records every request, validation result, and error, providing visibility into system activity during execution.
+
+**Location:**  
+Implemented in `app.py` using Python’s built-in `logging` module.
+
+**Why it matters:**  
+Modern intelligent systems rely on observability and feedback loops; this logging layer provides the foundation for that awareness.
+
+---
+
+### Overall Impact
+
+Together, these components transform a simple data receiver into a **decision-making system** that:
+
+- Evaluates data quality  
+- Regulates usage  
+- Identifies invalid or potentially abnormal inputs  
+- Maintains awareness of its own state  
+
+These behaviors operate automatically at runtime, allowing the system to respond to data and usage patterns without manual intervention.
+
+This is a practical, rule-based example of **AI-assisted backend engineering** — intelligence through structured control rather than complex models. It demonstrates how even a lightweight API can incorporate intelligent behaviors that mirror real-world production systems.
