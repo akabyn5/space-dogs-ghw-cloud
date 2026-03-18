@@ -173,6 +173,7 @@ By the end of the development session, the team successfully achieved the follow
 
 This progress established the **foundational backend infrastructure** for the project. The API can later be expanded to integrate with **cloud databases, monitoring dashboards, or data analysis platforms**, enabling more advanced telemetry processing and visualization capabilities.
 
+
 domingo 15 de marzo
 Summary – Space Dogs Telemetry System Development (March 15)
 During the March 15 work session, the team continued developing the backend infrastructure for the Space Dogs Telemetry Dashboard, focusing on improving telemetry data storage, API architecture, and system reliability.
@@ -194,9 +195,6 @@ Version 2 focused on software engineering practices, including the use of datacl
 Version 3 added advanced system capabilities such as schema migrations for safe database updates, validation mechanisms for telemetry data, bulk data insertion for performance, secure query building to prevent SQL injection, rate limiting to protect the API, caching for telemetry statistics, request tracing with unique IDs, support for sending telemetry via POST requests, and the ability to export stored telemetry data as a CSV file.
 
 Overall, the work completed on March 15 significantly strengthened the backend architecture, reliability, and scalability of the Space Dogs Telemetry API. The system now supports telemetry generation, persistent storage, historical analysis, improved monitoring, and safer API operation, representing a major step toward a realistic spacecraft telemetry monitoring platform.
-
-
-domingo 15 de marzo
 
 Extended Summary – Space Dogs Telemetry System Development (March 15)
 
@@ -383,6 +381,128 @@ Several key enhancements were implemented:
 ## ⚙️ System Enhancement
 
 The limitation of the previous version (single execution via `window.onload`) was resolved, enabling continuous interaction and dynamic data updates.
+
+martes 17 de marzo
+### 🚀 **OPERATIONAL REPORT — March 17**
+
+**Project:** Space Dogs Telemetry API  
+**Event:** Global Hack Week: Cloud  
+**Daily Objective:** Engineering Stability + System Foundations
+
+---
+
+### 🎯 1. GLOBAL TECHNICAL OBJECTIVE
+
+By the end of the day, the system had to meet three key properties:
+
+- **Reproducible**: Anyone can clone and run it  
+- **Clean**: No unnecessary files in the repository  
+- **Solid**: Consistent backend with no obvious failures  
+
+This established a strong engineering baseline — not a final product.
+
+---
+
+### 👨‍💻 2. TECHNICAL EXECUTION — JOSÉ
+
+José handled the entire backend and repository management.
+
+#### 🔹 2.1 Repository Cleanup
+**Actions:**
+- Created `.gitignore`
+- Removed `__pycache__/`, `telemetry.db`, and other junk files
+
+**Impact:**  
+Made the project truly portable and prevented repository pollution. Without this, the project wouldn’t be reproducible.
+
+#### 🔹 2.2 Dependency Management
+**Action:**  
+`pip freeze > requirements.txt`
+
+**Impact:**  
+Defined the exact environment, making the project fully deployable and easy to reconstruct.
+
+#### 🔹 2.3 Configuration System
+**Implemented:**
+- `config.py`
+- `.env.example`
+- Refactored `app.py`
+
+**Key Change:**  
+Removed scattered `os.environ.get()` calls and centralized all configuration.
+
+**Impact:**  
+Clear separation between configuration and business logic. Ready for production environments.
+
+#### 🔹 2.4 Critical Backend Fixes
+1. **Rate Limiter Fix**  
+   Excluded localhost (`127.0.0.1` and `::1`) to allow local development.
+
+2. **Input Validation**  
+   - `float` for temperature  
+   - `int` for battery and signal strength  
+   - `str` for status  
+   - Proper `400 Bad Request` error handling
+
+**Impact:** Prevents corrupted data and significantly improves system integrity.
+
+#### 🔹 2.5 New Critical Endpoint
+**Implemented:** `GET /telemetry/latest`
+
+**Function:** Retrieves the latest record **without** generating new data.
+
+**Impact:** Clear separation between write and read operations. Foundation for real-time monitoring.
+
+#### 🔹 2.6 Anomaly Detection System (Highlight of the Day)
+**Implemented in `database.py`:**
+
+Triggers:
+- Battery < 25%
+- Signal < 30
+- Temperature > 42°C
+
+**Result:** Every record now includes:
+- `is_anomaly` (boolean)
+- `anomalies[]` (list of detected issues)
+
+**Architectural Impact:**  
+The system evolved from **passive storage** to an intelligent **rule-based inference layer**.
+
+#### 🔹 2.7 System Execution
+Server successfully running on:
+- `127.0.0.1:5000`
+- `192.168.0.6:5000`
+
+Logs confirmed:
+- `POST /telemetry` → 201
+- `GET /telemetry/latest` → 200
+
+Port 5000 verified as LISTENING via `netstat`.
+
+#### 🔹 2.8 Functional Validation (Test Block 7)
+All three endpoints were thoroughly tested:
+
+1. **POST /telemetry**  
+   ✔ Inserts data into SQLite  
+   ✔ Automatically detects and stores anomalies  
+   *Example:* `"is_anomaly": true, "anomalies": ["LOW_BATTERY", "HIGH_TEMPERATURE"]`
+
+2. **GET /telemetry/latest**  
+   ✔ Retrieves latest record  
+   ✔ Dynamically recalculates anomalies
+
+3. **GET /telemetry/stats**  
+   ✔ SQL aggregations (AVG, MIN, MAX)  
+   ✔ Implemented caching
+
+**System Model Validated:**
+`POST → DB (INSERT) → GET latest (reconstruct + logic) → GET stats (SQL + cache)`
+
+#### 🔹 2.9 Final Commit (Task Block 8)
+```bash
+git add .
+git commit -m "Day 1: stability, config, validation, new endpoints"
+git push
 
 
 ## 🚀 Day 1 — Engineering Improvements
