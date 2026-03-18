@@ -383,3 +383,15 @@ Several key enhancements were implemented:
 ## ⚙️ System Enhancement
 
 The limitation of the previous version (single execution via `window.onload`) was resolved, enabling continuous interaction and dynamic data updates.
+
+
+## 🚀 Día 1 — Mejoras de Ingeniería
+
+### 1. requirements.txt  
+El archivo **`requirements.txt`** es un documento almacenado en GitHub que contiene todas las librerías y dependencias necesarias para que la API funcione correctamente. Permite replicar el entorno de desarrollo de manera rápida y consistente en cualquier sistema.
+
+### 2. .gitignore  
+El archivo **`.gitignore`** se utiliza para especificar qué archivos o carpetas no deben ser incluidos en el repositorio. Esto ayuda a evitar subir archivos innecesarios, temporales o sensibles, manteniendo el proyecto limpio y organizado.
+
+### 3. Validación de entrada  
+La **validación de entrada** es un proceso fundamental que asegura que la API reciba solicitudes correctas antes de ejecutar cualquier acción. No se puede iniciar ningún proceso si la API no es llamada correctamente, lo que garantiza seguridad, estabilidad y control en el flujo de ejecución.
