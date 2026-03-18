@@ -1,18 +1,25 @@
 """
-app.py — Space Dogs Telemetry Dashboard  (v3)
-==============================================
+app.py — Space Dogs Telemetry Dashboard  (v3.2)
+===============================================
 REST API built with Flask. Owns routing and HTTP concerns only;
 all database work is delegated to database.py.
 
+New in v3.2 (Block 3 compliance pass):
+  - POST /telemetry now explicitly rejects non-JSON requests with 415.
+  - All endpoints now use a unified response contract:
+        { "success": bool, "data": ..., ...optional fields... }
+    Previously some endpoints used "records", "stats", or omitted "success".
+  - /health now includes "success" for contract consistency.
+  - DB error responses no longer expose raw exception messages, which
+    could leak internal implementation details (table names, file paths).
+
+New in v3.1:
+  - _latest_cache: dedicated TTL cache for /telemetry/latest.
+  - /telemetry/latest returns "status" + "cached" fields.
+  - Eager cache invalidation on all write endpoints.
+
 New in v3:
-  - RateLimiter: in-memory per-IP rate limiting (no external libraries).
-  - StatsCache:  TTL cache for /telemetry/stats (avoids re-running the
-                 aggregate SQL query on every single request).
-  - X-Request-ID header: every request gets a unique ID for log tracing.
-  - POST /telemetry accepts an optional JSON body for custom readings.
-  - POST /telemetry/bulk generates N readings in one fast batch insert.
-  - GET  /telemetry/search filters by status, battery, temperature, dates.
-  - GET  /telemetry/export.csv streams a downloadable CSV file.
+  - RateLimiter, StatsCache, X-Request-ID, bulk insert, search, CSV export.
 
 Environment variables:
     FLASK_DEBUG          — "1" enables debug mode (default: 0)
@@ -55,41 +62,20 @@ from database import (
 # Logging
 # ---------------------------------------------------------------------------
 
-# WHY THIS ORDER MATTERS:
-# We must define _RequestIdFilter *before* calling basicConfig, because we
-# immediately attach it to the root logger's handlers right after basicConfig
-# creates them. If we defined it after, we'd have nothing to attach.
-
 class _RequestIdFilter(logging.Filter):
     """
     Injects a 'request_id' field into every log record so the format string
     %(request_id)s always resolves — even for log lines emitted outside a
     Flask request context (e.g. during startup, or by Werkzeug internals).
-
-    The fix for the KeyError crash: previously this filter was only added to
-    app.py's own logger. Any log line from database.py, Flask, or Werkzeug
-    bypassed the filter entirely, so %(request_id)s was undefined when Python
-    tried to format those lines and raised KeyError → ValueError → crash.
-
-    Now we attach this filter to every handler on the ROOT logger (done below),
-    which means it intercepts 100% of log records in the entire process —
-    database.py, Werkzeug, Flask internals, everything.
     """
     def filter(self, record: logging.LogRecord) -> bool:
-        # Try to read request_id from Flask's per-request 'g' object.
-        # If we're outside a request context (startup, background tasks),
-        # Flask raises RuntimeError when you access g — we catch it and
-        # fall back to '-' so the format string always has something to print.
         try:
             record.request_id = g.request_id
         except RuntimeError:
-            # RuntimeError means we're outside an application/request context.
             record.request_id = "-"
         except AttributeError:
-            # AttributeError means g exists but request_id hasn't been set yet
-            # (e.g. a log line before @before_request runs).
             record.request_id = "-"
-        return True   # returning True means "yes, emit this record"
+        return True
 
 
 logging.basicConfig(
@@ -98,11 +84,6 @@ logging.basicConfig(
     datefmt = "%Y-%m-%d %H:%M:%S",
 )
 
-# Attach the filter to EVERY handler the root logger owns.
-# basicConfig() creates exactly one StreamHandler (the console) and attaches
-# it to the root logger. All other loggers in the process (database, flask,
-# werkzeug) propagate their records UP to the root logger's handlers, so
-# patching here is sufficient — we don't need to touch each logger individually.
 _request_id_filter = _RequestIdFilter()
 for _handler in logging.root.handlers:
     _handler.addFilter(_request_id_filter)
@@ -111,52 +92,25 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Rate limiter (no external dependencies)
+# Rate limiter
 # ---------------------------------------------------------------------------
 
 class RateLimiter:
     """
-    Simple in-memory per-IP rate limiter using a sliding fixed-window strategy.
-
-    How it works:
-    We keep a dictionary that maps each IP address to a (request_count,
-    window_start_time) tuple. When a request arrives, we check whether the
-    current second is still within the same 60-second window as the first
-    request from that IP. If it is, we increment the counter and check it
-    against the limit. If the window has expired, we reset the counter to 1
-    and start a new window.
-
-    Why no external library?
-    Libraries like Flask-Limiter work well, but they add a dependency and
-    require configuration. For a hackathon project, understanding how to build
-    the mechanism yourself is more valuable than importing a black box.
-
-    Limitation: because we store counts in a Python dict, state is lost when
-    the process restarts and is NOT shared across multiple server processes.
-    For a production system with multiple workers, you would store rate-limit
-    state in Redis instead.
+    Simple in-memory per-IP rate limiter using a fixed-window strategy.
+    State is not shared across processes — use Redis for multi-worker setups.
     """
 
     def __init__(self, max_requests: int, window_seconds: int = 60):
         self._max      = max_requests
         self._window   = window_seconds
-        # defaultdict means accessing a missing key creates it automatically
-        # rather than raising a KeyError. Each value is [count, window_start].
         self._counters: dict[str, list] = defaultdict(lambda: [0, monotonic()])
 
     def is_allowed(self, ip: str) -> tuple[bool, int]:
-        """
-        Checks whether the given IP is within its rate limit.
-
-        Returns:
-            (allowed, remaining) where 'remaining' is how many more
-            requests the IP can make in the current window.
-        """
         now   = monotonic()
-        entry = self._counters[ip]   # [count, window_start]
+        entry = self._counters[ip]
 
         if now - entry[1] >= self._window:
-            # The previous window has expired — start a fresh one.
             entry[0] = 0
             entry[1] = now
 
@@ -166,35 +120,25 @@ class RateLimiter:
 
 
 # ---------------------------------------------------------------------------
-# Stats cache (TTL-based)
+# TTL cache
 # ---------------------------------------------------------------------------
 
 class StatsCache:
     """
-    A minimal Time-To-Live cache for a single value (the telemetry stats dict).
+    Minimal TTL cache for a single value.
 
-    The aggregate SQL query that powers /telemetry/stats scans every row in
-    the table. If the endpoint gets hit frequently (e.g. by a dashboard that
-    polls every second), this becomes wasteful — the stats don't change
-    meaningfully between individual requests.
-
-    A TTL cache solves this: we store the result together with the time it
-    was computed. On the next request, if less than TTL seconds have passed,
-    we return the stored result without touching the database. If the TTL has
-    expired, we re-run the query and update the cache.
-
-    This is the simplest form of caching. Production systems use tools like
-    Redis or Memcached for distributed caches that survive restarts and are
-    shared across multiple server processes.
+    Used for both _stats_cache (aggregate query results) and _latest_cache
+    (most recent telemetry record) — the caching contract is identical for
+    both, so one class handles both cases.
     """
 
     def __init__(self, ttl_seconds: float):
         self._ttl        = ttl_seconds
         self._value      = None
-        self._expires_at = 0.0   # monotonic timestamp when the cache expires
+        self._expires_at = 0.0
 
     def get(self):
-        """Returns the cached value, or None if the cache has expired."""
+        """Returns the cached value, or None if the TTL has expired."""
         if monotonic() < self._expires_at:
             return self._value
         return None
@@ -205,7 +149,7 @@ class StatsCache:
         self._expires_at = monotonic() + self._ttl
 
     def invalidate(self) -> None:
-        """Forces the cache to expire immediately (useful after writes)."""
+        """Forces immediate expiry — call this after any write operation."""
         self._expires_at = 0.0
 
 
@@ -217,6 +161,10 @@ app = Flask(__name__)
 
 _rate_limiter = RateLimiter(max_requests=RATE_LIMIT, window_seconds=60)
 _stats_cache  = StatsCache(ttl_seconds=STATS_CACHE_TTL)
+
+# Dedicated cache for the single latest record.
+# Invalidated eagerly on every write so it never serves stale data.
+_latest_cache = StatsCache(ttl_seconds=STATS_CACHE_TTL)
 
 init_db()
 
@@ -236,17 +184,12 @@ def _build_record(
     subsystem_status: str   | None = None,
 ) -> TelemetryRecord:
     """
-    Builds a TelemetryRecord, using provided values or generating simulated
-    ones for any field that was left as None.
-
-    This dual-mode function is used by both the auto-generate endpoint (all
-    fields None → fully simulated) and the custom-body endpoint (some fields
-    provided by the caller → mixed).
+    Builds a TelemetryRecord using provided values, or simulating any field
+    left as None. Sensor ranges are kept consistent with the chosen status.
     """
     status = subsystem_status or random.choices(_STATUSES, weights=_WEIGHTS, k=1)[0]
 
     if temperature is None or battery_level is None or signal_strength is None:
-        # Generate sensor ranges consistent with the chosen status.
         if status == "critical":
             temp    = temperature     if temperature    is not None else round(random.uniform(35.0, 55.0), 2)
             battery = battery_level   if battery_level  is not None else random.randint(5, 30)
@@ -277,37 +220,16 @@ def _build_record(
 
 @app.before_request
 def _before_request() -> None:
-    """
-    Runs before every route handler.
-
-    We do three things here:
-    1. Generate a unique request ID (a UUID) and store it in Flask's 'g' object.
-       This ID will appear in every log line for this request, making it trivial
-       to grep the logs for everything that happened during one specific request.
-    2. Record the start time so we can measure response duration.
-    3. Apply the rate limiter. If the caller has sent too many requests, we
-       return a 429 response here — the route handler never even runs.
-    """
-    g.request_id = str(uuid.uuid4())[:8]   # short 8-char prefix is enough for tracing
+    """Assigns a unique request ID, records start time, enforces rate limits."""
+    g.request_id = str(uuid.uuid4())[:8]
     g.start_time = monotonic()
-    logger.info("→ %s %s", request.method, request.path)
+    logger.info("-> %s %s", request.method, request.path)
 
-    # Rate limiting: get the caller's IP address.
-    # X-Forwarded-For is set by proxies/load balancers and contains the real
-    # client IP. We fall back to request.remote_addr when no proxy is present.
-    # X-Forwarded-For can contain a comma-separated chain of IPs when multiple
-    # proxies are involved — e.g. "203.0.113.5, 10.0.0.1". The leftmost IP is
-    # always the original client, so we split and take index 0.
     client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
     if client_ip:
         client_ip = client_ip.split(",")[0].strip()
-    # Fallback for the rare case where both headers return None — keeps the
-    # rate limiter key and log messages meaningful instead of keying off None.
     client_ip = client_ip or "unknown"
 
-    # Skip rate limiting entirely for localhost so local dev/testing never
-    # triggers a 429. We still set g.rate_limit_remaining so the response
-    # header is always present — "infinite" signals "unlimited" to the caller.
     if client_ip in ("127.0.0.1", "::1"):
         g.rate_limit_remaining = "infinite"
     else:
@@ -325,17 +247,7 @@ def _before_request() -> None:
 
 @app.after_request
 def _after_request(response):
-    """
-    Runs after every route handler, before the response is sent to the client.
-
-    We add four things:
-    1. CORS headers so a browser on a different domain can call this API.
-    2. X-Request-ID so the caller can correlate their client-side logs with
-       our server-side logs using the same unique ID.
-    3. X-Response-Time-Ms so the caller can see how long the server took.
-    4. X-RateLimit-Remaining so the caller knows how many requests they have
-       left before hitting the rate limit.
-    """
+    """Adds CORS, X-Request-ID, X-Response-Time-Ms, and X-RateLimit-Remaining headers."""
     response.headers["Access-Control-Allow-Origin"]  = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
@@ -384,15 +296,15 @@ def _internal_error(error):
 
 def _parse_pagination() -> tuple[int, int]:
     """Parses ?page and ?limit query params. Returns (limit, offset)."""
-    page   = max(1,   int(request.args.get("page",  1)))
-    limit  = min(100, int(request.args.get("limit", 20)))
+    page  = max(1,   int(request.args.get("page",  1)))
+    limit = min(100, int(request.args.get("limit", 20)))
     return limit, (page - 1) * limit
 
 
 def _pagination_meta(total: int, limit: int, offset: int) -> dict:
     """Builds a reusable pagination metadata dict for any list endpoint."""
     current_page = (offset // limit) + 1
-    total_pages  = max(1, -(-total // limit))  # ceiling division trick
+    total_pages  = max(1, -(-total // limit))
     return {
         "total_records": total,
         "total_pages":   total_pages,
@@ -411,16 +323,17 @@ def _pagination_meta(total: int, limit: int, offset: int) -> dict:
 def home():
     """Index — service metadata and full endpoint map."""
     return jsonify({
+        "success": True,   # v3.2: added for contract consistency
         "service": "Space Dogs Telemetry API",
-        "version": "3.0",
+        "version": "3.2",
         "status":  "running",
-        "team":    "José & Maryfer — Space Dogs International Projects",
-        "event":   "Global Hack Week: Cloud — March 2026",
+        "team":    "Jose & Maryfer - Space Dogs International Projects",
+        "event":   "Global Hack Week: Cloud - March 2026",
         "endpoints": {
             "GET  /":                      "This index page",
             "GET  /health":                "Lightweight health check",
             "POST /telemetry":             "Generate & save one reading (optional JSON body)",
-            "GET  /telemetry/latest":       "Retrieve the most recent record",
+            "GET  /telemetry/latest":      "Retrieve the most recent record (cache-aware)",
             "GET  /telemetry/<id>":        "Retrieve one record by ID",
             "POST /telemetry/bulk":        "Generate N readings at once (?count=10)",
             "GET  /telemetry/history":     "Paginated history (?page=1&limit=20)",
@@ -435,8 +348,15 @@ def home():
 
 @app.route("/health")
 def health_check():
-    """Lightweight ping — no database touch, no telemetry generated."""
+    """
+    Lightweight ping -- no database touch, no telemetry generated.
+
+    v3.2: added "success" so this endpoint obeys the same contract as every
+    other route. Previously it returned only "status" and "timestamp", making
+    it the one outlier in the entire API.
+    """
     return jsonify({
+        "success":   True,          # v3.2: added for contract consistency
         "status":    "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
@@ -447,12 +367,12 @@ def telemetry_generate():
     """
     Generates one telemetry reading, saves it, and returns it.
 
-    What's new in v3: if the request includes a JSON body, we read field
-    values from it and use them instead of simulating random ones. This
-    lets you inject specific test scenarios (e.g. a critical reading with
-    known values) without hacking the simulation code.
+    v3.2: the endpoint now explicitly rejects requests that are not sent with
+    Content-Type: application/json (status 415 Unsupported Media Type).
+    Previously, a plain-text or form body would silently become {} instead of
+    raising an error, meaning bad input could appear to succeed.
 
-    Example POST body (all fields optional — omit any to simulate it):
+    POST body (all fields optional -- omit any to simulate it):
         {
             "temperature": 47.3,
             "battery_level": 12,
@@ -460,30 +380,28 @@ def telemetry_generate():
         }
     """
     try:
-        body = request.get_json(silent=True) or {}
-        # silent=True means get_json() returns None (not an error) if the
-        # body is missing or not valid JSON. We then default to {}.
+        # v3.2: explicit Content-Type guard.
+        # 415 Unsupported Media Type is the correct HTTP status here -- the
+        # server understands the request but refuses the media format.
+        if request.method == "POST" and not request.is_json:
+            return jsonify({
+                "success": False,
+                "error":   "Request body must be JSON.",
+                "hint":    "Set Content-Type: application/json and send a valid JSON body.",
+            }), 415
 
-        # Step A — extract raw values exactly as JSON delivered them.
-        # We keep them unmodified here and convert types in the next step so
-        # that a single, clear error can cover any type mismatch in any field.
+        body = request.get_json(silent=True) or {}
+
         temp_raw   = body.get("temperature")
         bat_raw    = body.get("battery_level")
         sig_raw    = body.get("signal_strength")
         status_raw = body.get("subsystem_status")
 
-        # Step B — explicit type conversion.
-        # We only convert when a value was actually supplied (not None),
-        # because None means "simulate this field" downstream. This preserves
-        # the partial-input + simulation contract while still rejecting
-        # nonsense like {"battery_level": "full"} or {"temperature": {}}.
         try:
-            temperature = float(temp_raw)  if temp_raw   is not None else None
-            battery     = int(bat_raw)     if bat_raw    is not None else None
-            signal      = int(sig_raw)     if sig_raw    is not None else None
-            # .strip() prevents "  critical  " (leading/trailing whitespace)
-            # from failing the status domain check — a common client mistake.
-            status      = str(status_raw).strip() if status_raw is not None else None
+            temperature = float(temp_raw)           if temp_raw   is not None else None
+            battery     = int(bat_raw)              if bat_raw    is not None else None
+            signal      = int(sig_raw)              if sig_raw    is not None else None
+            status      = str(status_raw).strip()   if status_raw is not None else None
         except (ValueError, TypeError):
             return jsonify({
                 "success": False,
@@ -491,15 +409,6 @@ def telemetry_generate():
                 "hint":    "temperature=float, battery_level=int, signal_strength=int, subsystem_status=str",
             }), 400
 
-        # Step C — domain constraint validation.
-        # Type correctness alone is not enough: int("999") succeeds, but a
-        # battery reading of 999 % makes no physical sense. We enforce the
-        # real-world ranges here at the boundary so that _build_record() and
-        # the database never receive out-of-range data.
-
-        # An empty string passes the type check above but carries no meaning.
-        # Catch it explicitly so the caller gets a clear error rather than a
-        # confusing "must be one of: nominal, warning, critical" message.
         if status is not None and status == "":
             return jsonify({
                 "success": False,
@@ -509,7 +418,7 @@ def telemetry_generate():
         if temperature is not None and not (-100 <= temperature <= 150):
             return jsonify({
                 "success": False,
-                "error":   "temperature must be between -100 and 150 °C.",
+                "error":   "temperature must be between -100 and 150 C.",
             }), 400
 
         if battery is not None and not (0 <= battery <= 100):
@@ -530,9 +439,6 @@ def telemetry_generate():
                 "error":   f"subsystem_status must be one of: {', '.join(_STATUSES)}.",
             }), 400
 
-        # Step D — build and persist the record.
-        # Every non-None value reaching here has passed both type and domain
-        # checks, so _build_record() can trust its inputs without re-checking.
         record    = _build_record(
             temperature      = temperature,
             battery_level    = battery,
@@ -540,15 +446,18 @@ def telemetry_generate():
             subsystem_status = status,
         )
         record.id = save_telemetry(record)
-        _stats_cache.invalidate()   # stats changed — expire the cache
+        _stats_cache.invalidate()
+        _latest_cache.invalidate()   # a new record changes what "latest" means
 
         return jsonify({"success": True, "data": record.to_dict()}), 201
 
     except ValidationError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except DatabaseError as exc:
+        # v3.2: log the real exception internally but return a generic message
+        # so we never leak table names, column names, or file paths to callers.
         logger.error("DB error on POST /telemetry: %s", exc)
-        return jsonify({"success": False, "error": str(exc)}), 503
+        return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
 
 @app.route("/telemetry/latest")
@@ -556,25 +465,53 @@ def telemetry_latest():
     """
     Returns the single most-recent telemetry record.
 
-    This is a convenience endpoint for dashboards and status widgets that
-    only ever need the latest reading — no pagination, no filtering, just
-    one row. get_latest_telemetry() returns a TelemetryRecord object, which
-    is converted to a plain dict via .to_dict() at this API boundary before
-    being serialised to JSON.
+    Cache strategy (two-level, write-through invalidation):
+      Level 1 -- _latest_cache: serve from memory with zero DB queries.
+      Level 2 -- database: on a miss, query and populate the cache.
+
+    The cache is invalidated eagerly on every write endpoint, so it never
+    returns stale data after a POST or DELETE regardless of TTL time left.
+
+    Response contract:
+      200 + "status": "ok"    -- record found (from cache or DB)
+      404 + "status": "empty" -- database has no records yet
     """
     try:
+        cached = _latest_cache.get()
+        if cached is not None:
+            logger.info("Cache hit on /telemetry/latest")
+            return jsonify({
+                "success": True,
+                "status":  "ok",
+                "cached":  True,
+                "data":    cached,
+            }), 200
+
+        logger.info("Cache miss on /telemetry/latest -- querying database")
         row = get_latest_telemetry()
+
         if row is None:
+            logger.warning("No telemetry records found in database")
             return jsonify({
                 "success": False,
-                "error":   "No telemetry data available.",
-                "hint":    "POST /telemetry to generate the first reading.",
+                "status":  "empty",
+                "data":    None,
+                "message": "No telemetry data available. POST /telemetry to create the first reading.",
             }), 404
-        return jsonify({"success": True, "data": row.to_dict()}), 200
+
+        record_dict = row.to_dict()
+        _latest_cache.set(record_dict)
+
+        return jsonify({
+            "success": True,
+            "status":  "ok",
+            "cached":  False,
+            "data":    record_dict,
+        }), 200
 
     except DatabaseError as exc:
         logger.error("DB error on GET /telemetry/latest: %s", exc)
-        return jsonify({"success": False, "error": str(exc)}), 503
+        return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
 
 @app.route("/telemetry/<int:record_id>")
@@ -585,13 +522,14 @@ def telemetry_get_one(record_id: int):
         if record is None:
             return jsonify({
                 "success": False,
+                "data":    None,
                 "error":   f"No record found with id={record_id}.",
             }), 404
         return jsonify({"success": True, "data": record.to_dict()})
 
     except DatabaseError as exc:
         logger.error("DB error fetching id=%s: %s", record_id, exc)
-        return jsonify({"success": False, "error": str(exc)}), 503
+        return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
 
 @app.route("/telemetry/bulk", methods=["POST"])
@@ -600,27 +538,23 @@ def telemetry_bulk():
     Generates N telemetry readings and inserts them all in one fast batch.
 
     Query parameter:
-        count — number of readings to generate (default: 10, max: 500)
-
-    Why would you want this?
-    Useful for quickly seeding the database with test data, or for
-    simulating a burst of telemetry from a satellite that was out of
-    contact for a while. It's also a great way to demonstrate the
-    performance difference between N individual INSERTs and one
-    bulk INSERT using executemany().
+        count -- number of readings to generate (default: 10, max: 500)
 
     Example: POST /telemetry/bulk?count=100
     """
     try:
-        count = min(500, max(1, int(request.args.get("count", 10))))
-        records = [_build_record() for _ in range(count)]
+        count    = min(500, max(1, int(request.args.get("count", 10))))
+        records  = [_build_record() for _ in range(count)]
         inserted = bulk_save_telemetry(records)
         _stats_cache.invalidate()
+        _latest_cache.invalidate()   # bulk insert changes what "latest" means
 
         return jsonify({
-            "success":          True,
-            "records_inserted": inserted,
-            "message":          f"Generated and saved {inserted} telemetry readings.",
+            "success": True,
+            "data": {
+                "records_inserted": inserted,
+                "message": f"Generated and saved {inserted} telemetry readings.",
+            },
         }), 201
 
     except ValueError:
@@ -629,7 +563,7 @@ def telemetry_bulk():
         return jsonify({"success": False, "error": str(exc)}), 400
     except DatabaseError as exc:
         logger.error("DB error on POST /telemetry/bulk: %s", exc)
-        return jsonify({"success": False, "error": str(exc)}), 503
+        return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
 
 @app.route("/telemetry/history")
@@ -637,9 +571,12 @@ def telemetry_history():
     """
     Paginated list of records, newest first.
 
+    v3.2: payload moved under "data" key to match the unified response
+    contract. Previously used "records" at the top level.
+
     Query parameters:
-        page  — page number (default: 1)
-        limit — records per page (default: 20, max: 100)
+        page  -- page number (default: 1)
+        limit -- records per page (default: 20, max: 100)
     """
     try:
         limit, offset  = _parse_pagination()
@@ -647,13 +584,13 @@ def telemetry_history():
         return jsonify({
             "success":    True,
             "pagination": _pagination_meta(total, limit, offset),
-            "records":    [r.to_dict() for r in records],
+            "data":       [r.to_dict() for r in records],  # v3.2: was "records"
         })
     except ValueError:
         return jsonify({"success": False, "error": "'page' and 'limit' must be integers."}), 400
     except DatabaseError as exc:
         logger.error("DB error on /telemetry/history: %s", exc)
-        return jsonify({"success": False, "error": str(exc)}), 503
+        return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
 
 @app.route("/telemetry/search")
@@ -661,16 +598,9 @@ def telemetry_search():
     """
     Filtered search across stored telemetry records.
 
-    All query parameters are optional — omit any you don't need:
-        status      — 'nominal', 'warning', or 'critical'
-        min_battery — minimum battery_level (0–100)
-        max_battery — maximum battery_level (0–100)
-        min_temp    — minimum temperature (float)
-        max_temp    — maximum temperature (float)
-        from_ts     — earliest timestamp (ISO 8601, e.g. 2026-03-15T00:00:00)
-        to_ts       — latest  timestamp  (ISO 8601)
-        page        — page number (default: 1)
-        limit       — records per page (default: 20, max: 100)
+    All query parameters are optional:
+        status, min_battery, max_battery, min_temp, max_temp,
+        from_ts (ISO 8601), to_ts (ISO 8601), page, limit
 
     Example:
         GET /telemetry/search?status=warning&min_battery=20&max_temp=45.0
@@ -687,20 +617,20 @@ def telemetry_search():
             return float(v) if v is not None else None
 
         records, total = search_telemetry(
-            status      = request.args.get("status")      or None,
+            status      = request.args.get("status")  or None,
             min_battery = opt_int("min_battery"),
             max_battery = opt_int("max_battery"),
             min_temp    = opt_float("min_temp"),
             max_temp    = opt_float("max_temp"),
-            from_ts     = request.args.get("from_ts")     or None,
-            to_ts       = request.args.get("to_ts")       or None,
+            from_ts     = request.args.get("from_ts") or None,
+            to_ts       = request.args.get("to_ts")   or None,
             limit       = limit,
             offset      = offset,
         )
         return jsonify({
             "success":    True,
             "pagination": _pagination_meta(total, limit, offset),
-            "records":    [r.to_dict() for r in records],
+            "data":       [r.to_dict() for r in records],  # v3.2: was "records"
         })
 
     except ValidationError as exc:
@@ -709,25 +639,31 @@ def telemetry_search():
         return jsonify({"success": False, "error": "Numeric parameters must be valid numbers."}), 400
     except DatabaseError as exc:
         logger.error("DB error on /telemetry/search: %s", exc)
-        return jsonify({"success": False, "error": str(exc)}), 503
+        return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
 
 @app.route("/telemetry/anomalies")
 def telemetry_anomalies():
-    """Returns the most recent non-nominal records (warning + critical)."""
+    """
+    Returns the most recent non-nominal records (warning + critical).
+
+    v3.2: payload moved under "data" to match the unified response contract.
+    Previously used "records" at the top level alongside a separate "count".
+    The count is preserved as a convenience field.
+    """
     try:
         limit   = min(100, int(request.args.get("limit", 20)))
         records = get_anomalies(limit=limit)
         return jsonify({
             "success": True,
-            "count":   len(records),
-            "records": [r.to_dict() for r in records],
+            "count":   len(records),                       # convenience field
+            "data":    [r.to_dict() for r in records],    # v3.2: was "records"
         })
     except ValueError:
         return jsonify({"success": False, "error": "'limit' must be an integer."}), 400
     except DatabaseError as exc:
         logger.error("DB error on /telemetry/anomalies: %s", exc)
-        return jsonify({"success": False, "error": str(exc)}), 503
+        return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
 
 @app.route("/telemetry/stats")
@@ -735,25 +671,24 @@ def telemetry_stats():
     """
     Aggregate statistics with TTL caching.
 
-    The stats query scans every row in the table. If a frontend polls this
-    endpoint every second, we'd run that full scan every second — wasteful
-    when the data barely changes. The StatsCache stores the result for
-    STATS_CACHE_TTL_SECS seconds (default: 10) and serves it from memory
-    on subsequent requests. The response includes a 'cached' field so you
-    can see when a cache hit occurred.
+    v3.2: payload moved under "data" to match the unified response contract.
+    Previously used "stats" at the top level.
+
+    The "cached" field tells you whether the response came from memory or a
+    fresh database scan -- useful for debugging and observability.
     """
     try:
         cached = _stats_cache.get()
         if cached is not None:
-            return jsonify({"success": True, "cached": True,  "stats": cached})
+            return jsonify({"success": True, "cached": True,  "data": cached})  # v3.2: was "stats"
 
         stats = get_telemetry_stats()
         _stats_cache.set(stats)
-        return jsonify({"success": True, "cached": False, "stats": stats})
+        return jsonify({"success": True, "cached": False, "data": stats})       # v3.2: was "stats"
 
     except DatabaseError as exc:
         logger.error("DB error on /telemetry/stats: %s", exc)
-        return jsonify({"success": False, "error": str(exc)}), 503
+        return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
 
 @app.route("/telemetry/export.csv")
@@ -761,41 +696,30 @@ def telemetry_export_csv():
     """
     Returns all telemetry records as a downloadable CSV file.
 
-    Note: the CSV is built in memory using io.StringIO before being sent.
-    This is simple and correct for typical dataset sizes. For very large
-    tables (millions of rows), a true streaming generator approach would
-    be needed to avoid high memory usage — but that's out of scope here.
-
     The Content-Disposition header tells the browser to download the
     response as a file rather than displaying it inline.
 
-    Try it in your browser: visit /telemetry/export.csv — it downloads!
+    Try it in your browser: visit /telemetry/export.csv -- it downloads!
     """
     try:
         columns, rows = get_all_rows_for_export()
 
-        # io.StringIO is an in-memory text buffer — it behaves exactly like
-        # a file but never touches the disk.
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(columns)   # write the header row first
-        writer.writerows(rows)     # write all data rows
-
-        # Rewind the buffer to the beginning so Flask reads from the start.
+        writer.writerow(columns)
+        writer.writerows(rows)
         output.seek(0)
 
-        filename  = f"telemetry_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = f"telemetry_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
         return Response(
             output.getvalue(),
-            mimetype    = "text/csv",
-            headers     = {
-                "Content-Disposition": f"attachment; filename={filename}",
-            },
+            mimetype = "text/csv",
+            headers  = {"Content-Disposition": f"attachment; filename={filename}"},
         )
 
     except DatabaseError as exc:
         logger.error("DB error on /telemetry/export.csv: %s", exc)
-        return jsonify({"success": False, "error": str(exc)}), 503
+        return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
 
 @app.route("/telemetry/old", methods=["DELETE"])
@@ -804,7 +728,7 @@ def telemetry_delete_old():
     Prunes the oldest records, keeping only the most recent N.
 
     Query parameter:
-        keep — how many recent records to preserve (default: 1000)
+        keep -- how many recent records to preserve (default: 1000)
 
     Example: DELETE /telemetry/old?keep=500
     """
@@ -813,19 +737,22 @@ def telemetry_delete_old():
         deleted = delete_old_records(keep_last_n=keep)
         if deleted:
             _stats_cache.invalidate()
+            _latest_cache.invalidate()   # deleting old records may change "latest"
 
         return jsonify({
-            "success":         True,
-            "records_deleted": deleted,
-            "records_kept":    keep,
-            "message": f"Deleted {deleted} record(s)." if deleted
-                       else "No records needed pruning.",
+            "success": True,
+            "data": {
+                "records_deleted": deleted,
+                "records_kept":    keep,
+                "message": f"Deleted {deleted} record(s)." if deleted
+                           else "No records needed pruning.",
+            },
         })
     except ValueError:
         return jsonify({"success": False, "error": "'keep' must be a positive integer."}), 400
     except DatabaseError as exc:
         logger.error("DB error on DELETE /telemetry/old: %s", exc)
-        return jsonify({"success": False, "error": str(exc)}), 503
+        return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
 
 # ---------------------------------------------------------------------------
