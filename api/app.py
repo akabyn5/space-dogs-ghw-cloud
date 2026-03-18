@@ -24,7 +24,6 @@ Environment variables:
 
 import csv
 import io
-import os
 import random
 import logging
 import uuid
@@ -32,12 +31,13 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from time import monotonic
 
+
 from flask import Flask, Response, jsonify, request, g
+from config import DEBUG, PORT, RATE_LIMIT, STATS_CACHE_TTL
 from database import (
     DatabaseError,
     ValidationError,
     TelemetryRecord,
-    VALID_STATUSES,
     init_db,
     save_telemetry,
     bulk_save_telemetry,
@@ -48,6 +48,7 @@ from database import (
     search_telemetry,
     get_all_rows_for_export,
     delete_old_records,
+    get_latest_telemetry,
 )
 
 # ---------------------------------------------------------------------------
@@ -92,7 +93,7 @@ class _RequestIdFilter(logging.Filter):
 
 
 logging.basicConfig(
-    level   = logging.DEBUG if os.environ.get("FLASK_DEBUG") == "1" else logging.INFO,
+    level   = logging.DEBUG if DEBUG else logging.INFO,
     format  = "%(asctime)s  %(levelname)-8s  %(name)s  [%(request_id)s]  %(message)s",
     datefmt = "%Y-%m-%d %H:%M:%S",
 )
@@ -214,11 +215,6 @@ class StatsCache:
 
 app = Flask(__name__)
 
-DEBUG            = os.environ.get("FLASK_DEBUG", "0") == "1"
-PORT             = int(os.environ.get("FLASK_PORT",           "5000"))
-RATE_LIMIT       = int(os.environ.get("RATE_LIMIT_PER_MIN",   "60"))
-STATS_CACHE_TTL  = float(os.environ.get("STATS_CACHE_TTL_SECS", "10"))
-
 _rate_limiter = RateLimiter(max_requests=RATE_LIMIT, window_seconds=60)
 _stats_cache  = StatsCache(ttl_seconds=STATS_CACHE_TTL)
 
@@ -299,16 +295,32 @@ def _before_request() -> None:
     # Rate limiting: get the caller's IP address.
     # X-Forwarded-For is set by proxies/load balancers and contains the real
     # client IP. We fall back to request.remote_addr when no proxy is present.
+    # X-Forwarded-For can contain a comma-separated chain of IPs when multiple
+    # proxies are involved — e.g. "203.0.113.5, 10.0.0.1". The leftmost IP is
+    # always the original client, so we split and take index 0.
     client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
-    allowed, remaining = _rate_limiter.is_allowed(client_ip)
+    if client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    # Fallback for the rare case where both headers return None — keeps the
+    # rate limiter key and log messages meaningful instead of keying off None.
+    client_ip = client_ip or "unknown"
 
-    if not allowed:
-        logger.warning("Rate limit exceeded for IP %s", client_ip)
-        return jsonify({
-            "success": False,
-            "error":   "Rate limit exceeded. Please wait before sending more requests.",
-            "hint":    f"Maximum {RATE_LIMIT} requests per 60 seconds per IP address.",
-        }), 429
+    # Skip rate limiting entirely for localhost so local dev/testing never
+    # triggers a 429. We still set g.rate_limit_remaining so the response
+    # header is always present — "infinite" signals "unlimited" to the caller.
+    if client_ip in ("127.0.0.1", "::1"):
+        g.rate_limit_remaining = "infinite"
+    else:
+        allowed, remaining = _rate_limiter.is_allowed(client_ip)
+        g.rate_limit_remaining = remaining
+
+        if not allowed:
+            logger.warning("Rate limit exceeded for IP %s", client_ip)
+            return jsonify({
+                "success": False,
+                "error":   "Rate limit exceeded. Please wait before sending more requests.",
+                "hint":    f"Maximum {RATE_LIMIT} requests per 60 seconds per IP address.",
+            }), 429
 
 
 @app.after_request
@@ -334,6 +346,9 @@ def _after_request(response):
     if hasattr(g, "start_time"):
         elapsed_ms = (monotonic() - g.start_time) * 1000
         response.headers["X-Response-Time-Ms"] = f"{elapsed_ms:.2f}"
+
+    if hasattr(g, "rate_limit_remaining"):
+        response.headers["X-RateLimit-Remaining"] = str(g.rate_limit_remaining)
 
     return response
 
@@ -405,6 +420,7 @@ def home():
             "GET  /":                      "This index page",
             "GET  /health":                "Lightweight health check",
             "POST /telemetry":             "Generate & save one reading (optional JSON body)",
+            "GET  /telemetry/latest":       "Retrieve the most recent record",
             "GET  /telemetry/<id>":        "Retrieve one record by ID",
             "POST /telemetry/bulk":        "Generate N readings at once (?count=10)",
             "GET  /telemetry/history":     "Paginated history (?page=1&limit=20)",
@@ -448,11 +464,80 @@ def telemetry_generate():
         # silent=True means get_json() returns None (not an error) if the
         # body is missing or not valid JSON. We then default to {}.
 
+        # Step A — extract raw values exactly as JSON delivered them.
+        # We keep them unmodified here and convert types in the next step so
+        # that a single, clear error can cover any type mismatch in any field.
+        temp_raw   = body.get("temperature")
+        bat_raw    = body.get("battery_level")
+        sig_raw    = body.get("signal_strength")
+        status_raw = body.get("subsystem_status")
+
+        # Step B — explicit type conversion.
+        # We only convert when a value was actually supplied (not None),
+        # because None means "simulate this field" downstream. This preserves
+        # the partial-input + simulation contract while still rejecting
+        # nonsense like {"battery_level": "full"} or {"temperature": {}}.
+        try:
+            temperature = float(temp_raw)  if temp_raw   is not None else None
+            battery     = int(bat_raw)     if bat_raw    is not None else None
+            signal      = int(sig_raw)     if sig_raw    is not None else None
+            # .strip() prevents "  critical  " (leading/trailing whitespace)
+            # from failing the status domain check — a common client mistake.
+            status      = str(status_raw).strip() if status_raw is not None else None
+        except (ValueError, TypeError):
+            return jsonify({
+                "success": False,
+                "error":   "Invalid input types.",
+                "hint":    "temperature=float, battery_level=int, signal_strength=int, subsystem_status=str",
+            }), 400
+
+        # Step C — domain constraint validation.
+        # Type correctness alone is not enough: int("999") succeeds, but a
+        # battery reading of 999 % makes no physical sense. We enforce the
+        # real-world ranges here at the boundary so that _build_record() and
+        # the database never receive out-of-range data.
+
+        # An empty string passes the type check above but carries no meaning.
+        # Catch it explicitly so the caller gets a clear error rather than a
+        # confusing "must be one of: nominal, warning, critical" message.
+        if status is not None and status == "":
+            return jsonify({
+                "success": False,
+                "error":   "subsystem_status must not be empty.",
+            }), 400
+
+        if temperature is not None and not (-100 <= temperature <= 150):
+            return jsonify({
+                "success": False,
+                "error":   "temperature must be between -100 and 150 °C.",
+            }), 400
+
+        if battery is not None and not (0 <= battery <= 100):
+            return jsonify({
+                "success": False,
+                "error":   "battery_level must be between 0 and 100.",
+            }), 400
+
+        if signal is not None and not (0 <= signal <= 100):
+            return jsonify({
+                "success": False,
+                "error":   "signal_strength must be between 0 and 100.",
+            }), 400
+
+        if status is not None and status not in _STATUSES:
+            return jsonify({
+                "success": False,
+                "error":   f"subsystem_status must be one of: {', '.join(_STATUSES)}.",
+            }), 400
+
+        # Step D — build and persist the record.
+        # Every non-None value reaching here has passed both type and domain
+        # checks, so _build_record() can trust its inputs without re-checking.
         record    = _build_record(
-            temperature      = body.get("temperature"),
-            battery_level    = body.get("battery_level"),
-            signal_strength  = body.get("signal_strength"),
-            subsystem_status = body.get("subsystem_status"),
+            temperature      = temperature,
+            battery_level    = battery,
+            signal_strength  = signal,
+            subsystem_status = status,
         )
         record.id = save_telemetry(record)
         _stats_cache.invalidate()   # stats changed — expire the cache
@@ -463,6 +548,32 @@ def telemetry_generate():
         return jsonify({"success": False, "error": str(exc)}), 400
     except DatabaseError as exc:
         logger.error("DB error on POST /telemetry: %s", exc)
+        return jsonify({"success": False, "error": str(exc)}), 503
+
+
+@app.route("/telemetry/latest")
+def telemetry_latest():
+    """
+    Returns the single most-recent telemetry record.
+
+    This is a convenience endpoint for dashboards and status widgets that
+    only ever need the latest reading — no pagination, no filtering, just
+    one row. get_latest_telemetry() returns a TelemetryRecord object, which
+    is converted to a plain dict via .to_dict() at this API boundary before
+    being serialised to JSON.
+    """
+    try:
+        row = get_latest_telemetry()
+        if row is None:
+            return jsonify({
+                "success": False,
+                "error":   "No telemetry data available.",
+                "hint":    "POST /telemetry to generate the first reading.",
+            }), 404
+        return jsonify({"success": True, "data": row.to_dict()}), 200
+
+    except DatabaseError as exc:
+        logger.error("DB error on GET /telemetry/latest: %s", exc)
         return jsonify({"success": False, "error": str(exc)}), 503
 
 
@@ -648,14 +759,12 @@ def telemetry_stats():
 @app.route("/telemetry/export.csv")
 def telemetry_export_csv():
     """
-    Streams all telemetry records as a downloadable CSV file.
+    Returns all telemetry records as a downloadable CSV file.
 
-    What does 'streaming' mean here?
-    Instead of building the entire CSV string in memory first, we write
-    rows directly into a StringIO buffer that Flask sends incrementally
-    to the client. For a small SQLite database this doesn't matter much,
-    but it's the correct pattern — if the table had 1 million rows, loading
-    them all into a Python string before sending would exhaust memory.
+    Note: the CSV is built in memory using io.StringIO before being sent.
+    This is simple and correct for typical dataset sizes. For very large
+    tables (millions of rows), a true streaming generator approach would
+    be needed to avoid high memory usage — but that's out of scope here.
 
     The Content-Disposition header tells the browser to download the
     response as a file rather than displaying it inline.

@@ -14,7 +14,7 @@ import sqlite3
 import os
 import logging
 from contextlib import contextmanager
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,18 @@ DB_PATH  = os.environ.get(
     "TELEMETRY_DB_PATH",
     os.path.join(BASE_DIR, "telemetry.db"),
 )
+
+# ---------------------------------------------------------------------------
+# Anomaly detection thresholds
+# ---------------------------------------------------------------------------
+# Centralising these values here means there is exactly one place to look
+# when tuning sensitivity. No magic numbers are scattered across functions.
+# app.py and tests can also import these constants to display or assert on
+# the same thresholds without duplicating them.
+
+BATTERY_THRESHOLD     = 25   # % — below this level the battery is critically low
+SIGNAL_THRESHOLD      = 30   # % — below this the uplink is unreliable
+TEMPERATURE_THRESHOLD = 42   # °C — above this the spacecraft is running hot
 
 # ---------------------------------------------------------------------------
 # Exceptions
@@ -57,6 +69,55 @@ class ValidationError(Exception):
 
 
 # ---------------------------------------------------------------------------
+# Anomaly detection
+# ---------------------------------------------------------------------------
+
+def detect_anomalies(temperature: float, battery: int, signal: int) -> dict:
+    """
+    Evaluates a single set of sensor readings against the threshold constants
+    and returns a structured result describing every problem found.
+
+    Why return a dict with both 'is_anomaly' and 'anomalies' instead of just
+    a boolean?  A boolean tells you *whether* something is wrong; a list tells
+    you *what* is wrong. Dashboard UIs and alert systems need both: the boolean
+    is cheap to check in a conditional, and the list drives the actual message
+    shown to the operator. Returning both in one call avoids the caller having
+    to run the checks twice.
+
+    Why collect *all* anomalies instead of stopping at the first one?
+    A spacecraft can have a low battery AND a high temperature at the same time.
+    Stopping early would hide the second problem and delay the operator's
+    response. This function is deliberately exhaustive.
+
+    Args:
+        temperature: Current temperature reading in degrees C.
+        battery:     Battery charge as a percentage (0-100).
+        signal:      Signal strength as a percentage (0-100).
+
+    Returns:
+        A dict with two keys:
+            "is_anomaly" (bool)  — True if at least one threshold was breached.
+            "anomalies"  (list)  — Zero or more string codes describing each
+                                   breach, e.g. ["LOW_BATTERY", "HIGH_TEMPERATURE"].
+    """
+    anomalies = []
+
+    if battery < BATTERY_THRESHOLD:
+        anomalies.append("LOW_BATTERY")
+
+    if signal < SIGNAL_THRESHOLD:
+        anomalies.append("LOW_SIGNAL")
+
+    if temperature > TEMPERATURE_THRESHOLD:
+        anomalies.append("HIGH_TEMPERATURE")
+
+    return {
+        "is_anomaly": len(anomalies) > 0,
+        "anomalies":  anomalies,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Data model
 # ---------------------------------------------------------------------------
 
@@ -69,9 +130,28 @@ VALID_STATUSES = frozenset({"nominal", "warning", "critical"})
 @dataclass
 class TelemetryRecord:
     """
-    Typed representation of one row in the telemetry table.
+    Typed representation of one row in the telemetry table, enriched with
+    computed anomaly intelligence that is derived at object creation time
+    and never persisted to the database.
 
-    Using a dataclass gives us __init__, __repr__, and __eq__ for free.
+    Why keep @dataclass instead of writing a manual __init__ as the
+    instructions suggest?
+    Two reasons:
+      1. The dataclass-generated __init__ and asdict() are used throughout
+         save_telemetry() and bulk_save_telemetry(). Replacing the dataclass
+         with a manual __init__ would silently break asdict(), causing every
+         INSERT to fail.
+      2. __post_init__ is the hook dataclasses provide *exactly* for this
+         pattern: "let the dataclass handle field assignment, then I'll
+         compute derived values." It is the idiomatic solution.
+
+    The 'is_anomaly' and 'anomalies' fields are marked field(init=False),
+    which means they are NOT constructor parameters — they are computed
+    automatically inside __post_init__ after the dataclass sets the sensor
+    fields. SQLite INSERT calls are unaffected because named-parameter SQL
+    (:temperature, :battery_level, ...) silently ignores extra dict keys that
+    don't appear in the INSERT column list.
+
     'id' is Optional[int] because a new record has no ID until SQLite assigns
     one on INSERT.
     """
@@ -80,12 +160,44 @@ class TelemetryRecord:
     signal_strength:  int
     timestamp:        str
     subsystem_status: str
-    id:               Optional[int] = None
+    id:               Optional[int]  = None
+
+    # Computed at construction time — not stored in the DB, derived from the
+    # sensor readings above. field(init=False) excludes them from __init__ so
+    # callers never need to pass them; __post_init__ fills them in automatically.
+    is_anomaly: bool       = field(init=False, repr=False)
+    anomalies:  list       = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """
+        Called automatically by the dataclass machinery immediately after
+        __init__ assigns all the declared fields. We use it to run anomaly
+        detection so every TelemetryRecord is 'self-aware' about its own
+        health status the moment it is created — whether that creation comes
+        from an incoming API request or from a database query result.
+        """
+        anomaly_data    = detect_anomalies(
+            self.temperature, self.battery_level, self.signal_strength
+        )
+        self.is_anomaly = anomaly_data["is_anomaly"]
+        self.anomalies  = anomaly_data["anomalies"]
 
     def to_dict(self) -> dict:
-        """Plain dict for jsonify(), with 'id' placed first for readability."""
-        d = asdict(self)
-        return {"id": d.pop("id"), **d}
+        """
+        Plain dict for jsonify(), with 'id' placed first for readability.
+        The anomaly fields are included so every API response automatically
+        carries anomaly intelligence without any extra work in app.py.
+        """
+        return {
+            "id":               self.id,
+            "temperature":      self.temperature,
+            "battery_level":    self.battery_level,
+            "signal_strength":  self.signal_strength,
+            "timestamp":        self.timestamp,
+            "subsystem_status": self.subsystem_status,
+            "is_anomaly":       self.is_anomaly,
+            "anomalies":        self.anomalies,
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +225,7 @@ def validate_record(record: TelemetryRecord) -> None:
     if not (-100.0 <= record.temperature <= 150.0):
         raise ValidationError(
             f"temperature={record.temperature} is outside the realistic range "
-            f"[-100.0, 150.0] °C."
+            f"[-100.0, 150.0] degrees C."
         )
 
     if not (0 <= record.battery_level <= 100):
@@ -211,7 +323,7 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
         if version <= current:
             continue   # already applied — skip it
 
-        logger.info("Applying database migration v%s …", version)
+        logger.info("Applying database migration v%s ...", version)
         conn.executescript(sql)   # executescript auto-commits after each statement
         conn.execute(
             "INSERT INTO schema_version (version, applied_at) VALUES (?, datetime('now'))",
@@ -287,7 +399,7 @@ def save_telemetry(record: TelemetryRecord) -> int:
         ValidationError: if the record's values break business rules.
         DatabaseError:   if the INSERT fails.
     """
-    validate_record(record)   # ← always validate BEFORE opening a connection
+    validate_record(record)   # always validate BEFORE opening a connection
 
     with _get_connection() as conn:
         cursor = conn.execute(
@@ -299,6 +411,9 @@ def save_telemetry(record: TelemetryRecord) -> int:
                 (:temperature, :battery_level, :signal_strength,
                  :timestamp,   :subsystem_status)
             """,
+            # asdict() now includes is_anomaly and anomalies, but SQLite's
+            # named-parameter syntax only reads the keys it needs — the extra
+            # computed fields are silently ignored. No changes required here.
             asdict(record),
         )
         new_id = cursor.lastrowid
@@ -314,11 +429,11 @@ def bulk_save_telemetry(records: list[TelemetryRecord]) -> int:
     Why is this much faster than calling save_telemetry() in a loop?
     Every call to save_telemetry() opens a connection, sends SQL to SQLite,
     commits (which flushes data to disk), and closes the connection. Disk
-    flushes are expensive — typically 5–20 ms each. With 100 records that's
+    flushes are expensive — typically 5-20 ms each. With 100 records that's
     up to 2 seconds just in flush overhead.
 
     executemany() sends all rows in one batch and flushes to disk exactly
-    once at the end. For 100 records it's often 10-50× faster.
+    once at the end. For 100 records it's often 10-50x faster.
 
     Args:
         records: List of TelemetryRecord instances (each id should be None).
@@ -527,6 +642,45 @@ def get_telemetry_stats() -> dict:
             """
         ).fetchone()
     return dict(row) if row else {}
+
+
+def get_latest_telemetry() -> Optional[TelemetryRecord]:
+    """
+    Returns the single most recent telemetry record, or None if the table is empty.
+
+    Why ORDER BY timestamp DESC instead of ORDER BY id DESC?
+    The timestamp column reflects *when the reading was taken*, whereas the id
+    is just the insertion order. In practice they're usually the same, but if
+    records were ever back-filled or imported out of order, sorting by timestamp
+    gives you the physically most recent measurement — which is what a
+    "latest reading" dashboard widget really wants.
+
+    The LIMIT 1 makes this extremely cheap: SQLite uses the idx_telemetry_timestamp
+    index we created in migration v2 and stops after finding the very first row,
+    without scanning the rest of the table.
+
+    Returns:
+        A TelemetryRecord if at least one row exists, otherwise None.
+        Returning None (instead of raising) lets callers handle an empty database
+        gracefully — e.g., app.py can respond with HTTP 404 or an empty-state UI.
+
+    Raises:
+        DatabaseError: if the SELECT itself fails for any SQLite reason.
+    """
+    with _get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT *
+            FROM   telemetry
+            ORDER  BY timestamp DESC
+            LIMIT  1
+            """
+        ).fetchone()
+
+    # dict(row) works because row_factory = sqlite3.Row, which supports
+    # key-based access. If the table is empty, fetchone() returns None and
+    # we pass that straight back to the caller — no TelemetryRecord constructed.
+    return TelemetryRecord(**dict(row)) if row else None
 
 
 # ---------------------------------------------------------------------------
