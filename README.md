@@ -250,6 +250,7 @@ The backend uses **Python 3** with **Flask** for routing and **SQLite** for pers
 ---
 
 ![logo02](https://github.com/akabyn5/space-dogs-ghw-cloud/blob/main/docs/images/Logo%2002.jpeg)
+
 *Space Dogs · Global Hack Week: Cloud · March 2026*
 
 
