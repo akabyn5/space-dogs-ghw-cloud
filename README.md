@@ -34,7 +34,7 @@ All delivered in clean *JSON* format, ready to be consumed by a web frontend, da
 ---
 
 ![bestpractice](https://github.com/akabyn5/space-dogs-ghw-cloud/blob/main/docs/images/description.jpeg)
-![bestpractice02](https://github.com/akabyn5/space-dogs-ghw-cloud/blob/main/docs/images/description.jpeg)
+![bestpractice02](https://github.com/akabyn5/space-dogs-ghw-cloud/blob/main/docs/images/description%2002.jpeg)
 ### 🛠️ Technology & Best Practices
 
 This project isn’t just a toy example — it’s built with care and professionalism:
