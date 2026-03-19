@@ -10,8 +10,8 @@
 ![CSS](https://img.shields.io/badge/CSS-1572B6?style=for-the-badge&logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![Global Hack Week](https://img.shields.io/badge/Global%20Hack%20Week-Cloud-00BFFF?style=for-the-badge)
-![Space Dogs Logo 1](https://raw.githubusercontent.com/akabyn5/space-adventure-cli/main/space%20dogs1.png)
-![Space Dogs Logo 2](https://raw.githubusercontent.com/akabyn5/space-adventure-cli/main/ChatGPT%20Image%2016%20feb%202026%2C%2010_13_02%20p.m..png)
+![Space Dogs Logo 1](https://raw.githubusercontent.com/akabyn5/space-dogs-ghw-cloud/main/docs/images/space%20dogs1.png)
+![Space Dogs Logo 2](https://raw.githubusercontent.com/akabyn5/space-dogs-ghw-cloud/main/docs/images/ChatGPT%20Image%2016%20feb%202026%2C%2010_13_02%20p.m..png)
 
 A clean, realistic cloud-based system that simulates the generation, transmission, and consumption of *spacecraft telemetry data*. Includes a powerful Python/Flask backend REST API, a beautiful static web interface, and complete technical documentation.
 
