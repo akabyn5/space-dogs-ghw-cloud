@@ -41,6 +41,7 @@ This project isn’t just a toy example — it’s built with care and professio
 It strikes the perfect balance between educational simplicity and real-world quality.
 
 ---
+![dashboardtelemetry](https://github.com/akabyn5/space-dogs-ghw-cloud/blob/main/docs/images/dashboard%20telemetry%20api.jpeg)
 
 ### 🎯 Why does this project exist?
 
