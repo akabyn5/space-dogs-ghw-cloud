@@ -2,25 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Telemetry Monitor</title>
+  <title>Space Dogs — Telemetry Monitor</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <div class="container">
+
     <header class="dashboard-header">
-      <h1>🛰 SPACE DOGS</h1>
+
+      <!-- Project logo — loaded from the Flickr CDN.
+           The onerror handler swaps in the emoji fallback if the image
+           fails to load (e.g. no internet, CDN down), so the popup
+           never shows a broken-image icon. -->
+      <div class="header-logo-wrap">
+        <img
+          src="https://live.staticflickr.com/65535/55156104648_757ed729af_q.jpg"
+          alt="Space Dogs logo"
+          class="header-logo"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+        />
+        <!-- Emoji fallback — hidden by default, revealed by onerror above -->
+        <span class="header-logo-fallback" style="display:none;">🛰</span>
+      </div>
+
+      <h1>SPACE DOGS</h1>
       <p class="subtitle">Telemetry Control</p>
+
     </header>
 
     <div id="output" class="dashboard-content">
-      <div class="loading-state">Initializing telemetry stream...</div>
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <div class="loading-text">Initializing telemetry stream…</div>
+      </div>
     </div>
 
     <footer class="dashboard-footer">
-      <span class="status-indicator" id="connection-status">●</span>
+      <span id="connection-status">●</span>
       <span id="timestamp-display">—</span>
     </footer>
+
   </div>
 
   <script src="popup.js"></script>

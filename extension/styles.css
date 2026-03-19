@@ -34,22 +34,86 @@ body {
 
 .dashboard-header {
   text-align: center;
-  padding: 12px 0;
+  padding: 14px 0 12px;
   border-bottom: 2px solid var(--card-border);
   margin-bottom: 4px;
 }
+
+/* ── Logo ─────────────────────────────────────────────────────────── */
+
+/* Wrapper centres the image and keeps consistent spacing whether the
+   real image loads or the emoji fallback is shown instead.           */
+.header-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.header-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;                          /* circular crop            */
+  object-fit: cover;                           /* fill without distortion  */
+  border: 2px solid var(--card-border);
+  /* Layered glow: a tight inner ring and a wider outer bloom,
+     both in the brand cyan. Matches the metric-card glow style.     */
+  box-shadow:
+    0 0 0 3px rgba(0, 217, 179, 0.15),         /* subtle halo ring         */
+    0 0 18px rgba(0, 255, 204, 0.45),          /* outer bloom              */
+    inset 0 0 10px rgba(0, 255, 204, 0.1);     /* inner warmth             */
+  /* Slow pulse so the logo feels "alive" like the rest of the UI.
+     Uses the existing pulse keyframe already defined in this file.  */
+  animation: logo-pulse 3s ease-in-out infinite;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.header-logo:hover {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 0 3px rgba(0, 217, 179, 0.25),
+    0 0 28px rgba(0, 255, 204, 0.65),
+    inset 0 0 14px rgba(0, 255, 204, 0.2);
+}
+
+@keyframes logo-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px rgba(0, 217, 179, 0.15),
+      0 0 18px rgba(0, 255, 204, 0.45),
+      inset 0 0 10px rgba(0, 255, 204, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(0, 217, 179, 0.30),
+      0 0 30px rgba(0, 255, 204, 0.70),
+      inset 0 0 16px rgba(0, 255, 204, 0.2);
+  }
+}
+
+/* Emoji fallback — only visible when the image fails to load.
+   Sized and styled to occupy the same visual space as the real logo. */
+.header-logo-fallback {
+  font-size: 42px;
+  line-height: 64px;
+  width: 64px;
+  text-align: center;
+  filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.6));
+}
+
+/* ── Wordmark & subtitle ──────────────────────────────────────────── */
 
 .dashboard-header h1 {
   margin: 0;
   font-size: 18px;
   font-weight: bold;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   color: var(--primary-cyan);
   text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
 }
 
 .dashboard-header .subtitle {
-  margin: 4px 0 0 0;
+  margin: 4px 0 0;
   font-size: 11px;
   letter-spacing: 1px;
   color: var(--accent-purple);
