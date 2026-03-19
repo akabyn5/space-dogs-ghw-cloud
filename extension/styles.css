@@ -1,0 +1,490 @@
+:root {
+  --primary-cyan: #00ffcc;
+  --primary-dark: #050a18;
+  --card-bg: #0a1628;
+  --card-border: #00d9b3;
+  --status-nominal: #00ff88;
+  --status-warning: #ffcc00;
+  --status-critical: #ff3333;
+  --accent-purple: #6600ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 320px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--primary-dark) 0%, #0d1a3a 100%);
+  color: var(--primary-cyan);
+  font-family: "Courier New", monospace;
+  line-height: 1.4;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 12px;
+  gap: 12px;
+}
+
+.dashboard-header {
+  text-align: center;
+  padding: 12px 0;
+  border-bottom: 2px solid var(--card-border);
+  margin-bottom: 4px;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: var(--primary-cyan);
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+}
+
+.dashboard-header .subtitle {
+  margin: 4px 0 0 0;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--accent-purple);
+  text-transform: uppercase;
+}
+
+.dashboard-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.dashboard-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dashboard-content::-webkit-scrollbar-track {
+  background: rgba(0, 255, 204, 0.1);
+}
+
+.dashboard-content::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 2px;
+}
+
+.metric-card {
+  background: linear-gradient(135deg, var(--card-bg) 0%, #0d2847 100%);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 0 15px rgba(0, 217, 179, 0.2), inset 0 0 10px rgba(0, 255, 204, 0.05);
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  border-color: var(--primary-cyan);
+  box-shadow: 0 0 20px rgba(0, 255, 204, 0.3), inset 0 0 15px rgba(0, 255, 204, 0.1);
+}
+
+.metric-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent-purple);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metric-value {
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--primary-cyan);
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+
+.metric-unit {
+  font-size: 12px;
+  color: var(--accent-purple);
+  opacity: 0.8;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 255, 204, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 217, 179, 0.3);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-cyan), var(--card-border));
+  width: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px var(--primary-cyan);
+}
+
+.progress-fill.warning {
+  background: linear-gradient(90deg, var(--status-warning), #ffaa00);
+  box-shadow: 0 0 8px var(--status-warning);
+}
+
+.progress-fill.critical {
+  background: linear-gradient(90deg, var(--status-critical), #ff5555);
+  box-shadow: 0 0 8px var(--status-critical);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.status-section {
+  background: linear-gradient(135deg, #1a0033 0%, #0d1a3a 100%);
+  border: 1.5px solid var(--accent-purple);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 0 15px rgba(102, 0, 255, 0.2);
+}
+
+.status-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent-purple);
+  margin-bottom: 6px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border: 1px solid currentColor;
+}
+
+.status-badge.nominal {
+  color: var(--status-nominal);
+  background: rgba(0, 255, 136, 0.1);
+  text-shadow: 0 0 8px var(--status-nominal);
+}
+
+.status-badge.warning {
+  color: var(--status-warning);
+  background: rgba(255, 204, 0, 0.1);
+  text-shadow: 0 0 8px var(--status-warning);
+  animation: pulse 1.5s infinite;
+}
+
+.status-badge.critical {
+  color: var(--status-critical);
+  background: rgba(255, 51, 51, 0.1);
+  text-shadow: 0 0 8px var(--status-critical);
+  animation: pulse 0.8s infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/* LOADING STATE                                                         */
+/* ------------------------------------------------------------------ */
+
+.loading-state {
+  text-align: center;
+  padding: 30px 15px;
+  color: var(--accent-purple);
+  font-size: 12px;
+  letter-spacing: 1px;
+  opacity: 0.7;
+}
+
+.loading-text {
+  font-size: 10px;
+  color: #8899aa;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------------ */
+/* ERROR STATE                                                           */
+/* ------------------------------------------------------------------ */
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  gap: 8px;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.error-heading {
+  font-size: 12px;
+  color: var(--status-critical);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.error-hint {
+  font-size: 10px;
+  color: #8899aa;
+  max-width: 200px;
+  line-height: 1.5;
+}
+
+.error-detail {
+  font-size: 9px;
+  color: #556677;
+  font-style: italic;
+  max-width: 200px;
+}
+
+.retry-btn {
+  margin-top: 8px;
+  padding: 6px 18px;
+  background: transparent;
+  border: 1px solid #334455;
+  color: #8899aa;
+  border-radius: 4px;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.retry-btn:hover {
+  border-color: var(--primary-cyan);
+  color: var(--primary-cyan);
+}
+
+/* ------------------------------------------------------------------ */
+/* FOOTER                                                                */
+/* ------------------------------------------------------------------ */
+
+.dashboard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--card-border);
+  font-size: 10px;
+  color: var(--accent-purple);
+  margin-top: auto;
+}
+
+#connection-status {
+  display: inline-block;
+  color: var(--status-nominal);
+  font-size: 10px;
+  animation: blink 1s infinite;
+}
+
+#connection-status.offline {
+  color: var(--status-critical);
+}
+
+@keyframes blink {
+  0%, 49%, 100% { opacity: 1; }
+  50%, 99% { opacity: 0.3; }
+}
+
+/* ==================================================================== */
+/* HISTORY LIST VIEW                                                      */
+/* ==================================================================== */
+
+/* ------------------------------------------------------------------ */
+/* Shared row layout                                                     */
+/* Both the header row and every data row use the same 4-column grid   */
+/* so columns always line up perfectly.                                  */
+/* ------------------------------------------------------------------ */
+
+.history-header,
+.history-row {
+  display: grid;
+  /* seq | time | metrics (3 equal cols) | status */
+  grid-template-columns: 30px 62px 1fr 52px;
+  align-items: center;
+  gap: 0 4px;
+  padding: 6px 8px;
+  font-size: 10px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Header row                                                            */
+/* ------------------------------------------------------------------ */
+
+.history-header {
+  color: var(--accent-purple);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid rgba(0, 217, 179, 0.25);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+
+/* The three metric columns inside the header need the same 3-part split */
+.history-header .history-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  text-align: right;
+  gap: 0 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Data rows                                                             */
+/* ------------------------------------------------------------------ */
+
+.history-row {
+  border-radius: 5px;
+  transition: background 0.15s;
+  cursor: default;
+}
+
+.history-row:hover {
+  background: rgba(0, 255, 204, 0.04);
+}
+
+/* Even rows get a barely-visible tinted background for scanability */
+.history-row:nth-child(even) {
+  background: rgba(0, 217, 179, 0.03);
+}
+
+/* The most recent record gets a left accent bar and a brighter background */
+.history-row--latest {
+  background: rgba(0, 255, 204, 0.07) !important;
+  border-left: 2px solid var(--primary-cyan);
+  box-shadow: inset 0 0 12px rgba(0, 255, 204, 0.05);
+}
+
+/* ------------------------------------------------------------------ */
+/* Sequence badge column                                                 */
+/* ------------------------------------------------------------------ */
+
+.history-seq {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* "NEW" badge on the latest record */
+.latest-badge {
+  display: inline-block;
+  padding: 1px 4px;
+  background: rgba(0, 255, 204, 0.15);
+  border: 1px solid var(--primary-cyan);
+  border-radius: 3px;
+  font-size: 7px;
+  color: var(--primary-cyan);
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 6px var(--primary-cyan);
+}
+
+/* Dim record number for older rows */
+.seq-num {
+  font-size: 9px;
+  color: #445566;
+}
+
+/* ------------------------------------------------------------------ */
+/* Timestamp column                                                      */
+/* ------------------------------------------------------------------ */
+
+.history-time {
+  color: #8899aa;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* Brighten the timestamp of the most recent row */
+.history-row--latest .history-time {
+  color: var(--primary-cyan);
+}
+
+/* ------------------------------------------------------------------ */
+/* Metrics column (temperature / battery / signal)                      */
+/* ------------------------------------------------------------------ */
+
+.history-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 2px;
+  text-align: right;
+}
+
+/* Individual value cell — colour is set inline from JS via severityColor() */
+.history-cell {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* Tiny unit suffix next to each value */
+.history-unit {
+  font-size: 8px;
+  opacity: 0.7;
+  margin-left: 1px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Status column                                                         */
+/* ------------------------------------------------------------------ */
+
+.history-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.sys-icon {
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* Short status label, coloured to match severity */
+.sys-label {
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.sys-label.nominal  { color: var(--status-nominal);  }
+.sys-label.warning  { color: var(--status-warning);  }
+.sys-label.critical { color: var(--status-critical); animation: pulse 0.8s infinite; }
+
+/* ------------------------------------------------------------------ */
+/* Caption below the list                                                */
+/* ------------------------------------------------------------------ */
+
+.history-caption {
+  padding: 8px 8px 2px;
+  font-size: 9px;
+  color: #334455;
+  text-align: center;
+  letter-spacing: 0.5px;
+  border-top: 1px solid rgba(0, 217, 179, 0.1);
+  margin-top: 4px;
+}

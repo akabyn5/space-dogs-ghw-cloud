@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Telemetry Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="container">
+    <header class="dashboard-header">
+      <h1>🛰 SPACE DOGS</h1>
+      <p class="subtitle">Telemetry Control</p>
+    </header>
+
+    <div id="output" class="dashboard-content">
+      <div class="loading-state">Initializing telemetry stream...</div>
+    </div>
+
+    <footer class="dashboard-footer">
+      <span class="status-indicator" id="connection-status">●</span>
+      <span id="timestamp-display">—</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

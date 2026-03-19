@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Telemetry Monitor - Space Dogs",
+  "version": "1.0",
+  "description": "Real-time telemetry monitoring extension connected to the Space Dogs API",
+
+  "action": {
+    "default_popup": "popup.html"
+  },
+
+  "permissions": [],
+
+  "host_permissions": [
+    "http://127.0.0.1:5000/*"
+  ]
+}
