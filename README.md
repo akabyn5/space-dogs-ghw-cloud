@@ -3,6 +3,11 @@
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 ![GitHub Copilot](https://img.shields.io/badge/Powered%20by%20Copilot-000000?style=for-the-badge&logo=githubcopilot)
+![MLH](https://img.shields.io/badge/MLH-Participation-FF6B6B?style=for-the-badge)
+![HTML](https://img.shields.io/badge/HTML-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS](https://img.shields.io/badge/CSS-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Global Hack Week](https://img.shields.io/badge/Global%20Hack%20Week-Cloud-00BFFF?style=for-the-badge)
 
 A clean, realistic cloud-based system that simulates the generation, transmission, and consumption of *spacecraft telemetry data*. Includes a powerful Python/Flask backend REST API, a beautiful static web interface, and complete technical documentation.
 
