@@ -13,7 +13,7 @@ A clean, realistic cloud-based system that simulates the generation, transmissio
 That’s exactly what *Space Dogs Cloud Telemetry API* is all about: a clean, functional, and realistic cloud-based system that simulates the generation, transmission, and consumption of *spacecraft telemetry data*.
 
 ---
-
+![Logo](https://github.com/akabyn5/space-dogs-ghw-cloud/blob/main/docs/images/Logo.jpg)
 ### ✨ What is it and how does it work?
 
 It’s a modern backend built with *Python and Flask* that exposes a simple yet powerful REST endpoint: /telemetry.
