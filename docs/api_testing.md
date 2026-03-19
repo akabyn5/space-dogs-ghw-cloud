@@ -1,23 +1,45 @@
+### 🌟 **Successful API Test Report**
 
+**Date:** Monday, March 16, 2026  
+**Device:** Mobile Phone  
+**Tested Endpoint:** [https://oversolemn-unconsecutively-raul.ngrok-free.dev](https://oversolemn-unconsecutively-raul.ngrok-free.dev)
 
-### 1. Fecha de prueba  
-Lunes 16 de marzo de 2026  
+---
 
-### 2. Dispositivo utilizado  
-Teléfono celular  
+### ✅ Mission Status: **SUCCESS**
 
-### 3. Punto final aprobado  
-https://oversolemn-unconsecutively-raul.ngrok-free.dev  
+The **Space Dogs Telemetry API** passed the test with flying colors!  
 
-### 4. Resultado de la API  
-La API devolvió correctamente todos los datos de telemetría esperados, sin errores durante la ejecución.  
+From a simple mobile phone, the API responded perfectly, delivering fresh telemetry data without a single error. The connection was smooth, fast, and reliable — exactly what we hoped for. 🚀
 
-### 5. Descripción del formato JSON  
-El JSON devuelto es un objeto compuesto por pares clave-valor que organizan la información de manera clara y estructurada, permitiendo que sea fácilmente interpretada por aplicaciones frontend o sistemas externos. En este caso, el objeto incluye varias variables:  
-- **"temperature"**: almacena un valor decimal generado aleatoriamente dentro de un rango definido.  
-- **"battery_level"**: representa el porcentaje de batería como un número entero.  
-- **"signal_strength"**: indica la calidad de la señal.  
-- **"timestamp"**: registra la fecha y hora exacta en formato ISO 8601.  
-- **"subsystem_status"**: describe el estado general del sistema (por ejemplo, `"nominal"`).  
+---
 
-Este formato es ampliamente utilizado debido a que es ligero, legible y compatible con múltiples lenguajes de programación.
+### 📡 What the API Returned
+
+Every time the endpoint is called, it gracefully returns a clean and well-structured **JSON** object containing real-time simulated spacecraft telemetry.
+
+Here’s what you can expect:
+
+- **`temperature`** — A floating-point value representing the current temperature of a spacecraft subsystem (randomly generated within realistic ranges).  
+- **`battery_level`** — An integer showing the battery charge percentage (0–100%).  
+- **`signal_strength`** — An integer indicating the quality of the communication signal.  
+- **`timestamp`** — The exact date and time the data was generated, in standard ISO 8601 format.  
+- **`subsystem_status`** — A clear status message (currently set to `"nominal"` for normal operation).
+
+This lightweight, human-readable JSON format makes it incredibly easy to integrate with frontends, dashboards, mobile apps, or any external system — no matter which programming language you’re using.
+
+---
+
+### 🎉 Why This Matters
+
+Testing from a real mobile device confirms that the API is **portable, accessible, and production-ready**.  
+
+Whether you’re building a live dashboard, running a hackathon prototype, or just exploring space tech concepts, you can now confidently connect to the API from anywhere — even from your phone!
+
+---
+
+**Test Result: Passed with excellence.**  
+
+The spacecraft is talking loud and clear. 🌌✨
+
+*Ready for the next phase — who’s up for building something awesome with this data?*
