@@ -498,12 +498,6 @@ All three endpoints were thoroughly tested:
 **System Model Validated:**
 `POST → DB (INSERT) → GET latest (reconstruct + logic) → GET stats (SQL + cache)`
 
-#### 🔹 2.9 Final Commit (Task Block 8)
-```bash
-git add .
-git commit -m "Day 1: stability, config, validation, new endpoints"
-git push
-
 
 ## 🚀 Day 1 — Engineering Improvements
 
@@ -515,3 +509,101 @@ The **`.gitignore`** file is used to specify which files or folders should not b
 
 ### 3. Input Validation  
 **Input validation** is a fundamental process that ensures the API receives correct requests before executing any action. No process can start if the API is not properly called, which guarantees security, stability, and control over the execution flow.
+
+
+miercoles 18 de marzo
+# 📅 **Daily Report — March 18, 2026**
+
+## **Space Dogs — Telemetry API**  
+**Global Hack Week: Cloud**
+
+---
+
+## 🚀 **Day 2 — AI-Assisted Engineering System**
+
+### 🎯 **System Objective (Achieved)**
+
+Today, the project took a major leap forward.
+
+We transformed a simple telemetry API into a **true AI-assisted engineering system**.
+
+This evolution combines technical robustness with clear narrative and visible intelligence, creating a much more professional and educational experience.
+
+---
+
+### 👨‍💻 **Backend Development — José (Technical Owner)**
+
+#### 🔧 **BLOCK 1 — AI Enhancements Layer** (`/docs/ai-enhancements.md`)
+
+A new dedicated document was created to showcase the depth of engineering and the system’s evolution.
+
+##### **Before vs After** (Building Credibility)
+
+- **Before:**  
+  Basic `POST /telemetry` with minimal validation and inconsistent responses.
+
+- **After:**  
+  A fully validated, production-ready endpoint featuring:
+  - Strict input type enforcement
+  - Range validation
+  - Rate limiting
+  - Structured logging
+  - Consistent, well-defined JSON contract
+
+---
+
+##### **Technical Improvements Implemented**
+
+###### 1. **Caching Layer**
+- Implemented a smart TTL-based cache (`StatsCache`)
+- Applied to:
+  - `/telemetry/stats`
+  - `/telemetry/latest`
+- Features:
+  - Automatic expiration
+  - Manual invalidation on data writes
+- **Result:** Significantly reduced database load and faster response times.
+
+###### 2. **Logging System**
+- Centralized logging configured in `app.py`
+- Key features:
+  - Unique `X-Request-ID` for every request
+  - Full request tracing (method + path)
+  - Detailed error logging with stack traces
+- **Result:** Complete observability and easier debugging.
+
+###### 3. **Rate Limiting**
+- Custom in-memory rate limiter
+- Default policy: **60 requests per minute per IP**
+- Integrated at the request lifecycle level (`before_request`)
+- **Result:** Strong protection against abuse while maintaining predictable performance.
+
+###### 4. **Database Layer Structure**
+- All database logic cleanly isolated in `database.py`
+- API layer now focuses exclusively on HTTP concerns
+- Database module handles:
+  - Validation exceptions (`ValidationError`)
+  - Persistence (`save_telemetry`, `bulk_save`)
+  - Advanced queries (search, stats, latest)
+- **Result:** Excellent separation of concerns and highly maintainable architecture.
+
+---
+
+#### 🔧 **BLOCK 2 — Feature Implementation**
+
+##### ✅ **Improved Endpoint: `/telemetry/latest`**
+
+Major enhancements delivered:
+
+- Returns the most recent telemetry record
+- Gracefully handles empty database (returns clear 404)
+- Includes cache awareness (`"cached": true/false`)
+- Delivers clean, structured output:
+
+```json
+{
+  "success": true,
+  "status": "ok",
+  "cached": false,
+  "data": { ... }
+}
