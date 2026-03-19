@@ -1,5 +1,9 @@
 *Repository for the Space Dogs Cloud Telemetry API* — developed during *Global Hack Week: Cloud*.
 
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
+![GitHub Copilot](https://img.shields.io/badge/Powered%20by%20Copilot-000000?style=for-the-badge&logo=githubcopilot)
+
 A clean, realistic cloud-based system that simulates the generation, transmission, and consumption of *spacecraft telemetry data*. Includes a powerful Python/Flask backend REST API, a beautiful static web interface, and complete technical documentation.
 
 ![Space Dogs Mission Control Dashboard](https://github.com/akabyn5/space-dogs-ghw-cloud/blob/main/docs/ADzIy.jpg)
