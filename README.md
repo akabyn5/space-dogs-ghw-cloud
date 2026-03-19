@@ -90,7 +90,7 @@ Because learning by doing is infinitely more exciting when it feels like a real 
 Beautiful real-time web interface included in the repository
 
 ---
-
+![dashboard01](https://github.com/akabyn5/space-dogs-ghw-cloud/blob/main/docs/images/system%20architecture.jpeg)
 # 🛰 Space Dogs — Telemetry Dashboard
 
 
@@ -120,6 +120,7 @@ Rather than naively fetching on a fixed interval, the extension implements four 
 
 ---
 
+![dashboard2](https://github.com/akabyn5/space-dogs-ghw-cloud/blob/main/docs/images/system%20architecture%20'2.jpeg)
 ## ⚙️ Telemetry API
 
 The backend is a Flask REST API (`app.py`) that owns the full data lifecycle: simulating sensor readings, persisting them to SQLite, serving them through a versioned endpoint contract, and caching expensive queries in memory.
@@ -248,6 +249,7 @@ The backend uses **Python 3** with **Flask** for routing and **SQLite** for pers
 
 ---
 
+![logo02](https://github.com/akabyn5/space-dogs-ghw-cloud/blob/main/docs/images/Logo%2002.jpeg)
 *Space Dogs · Global Hack Week: Cloud · March 2026*
 
 
