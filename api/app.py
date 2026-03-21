@@ -12,6 +12,8 @@ New in v3.2 (Block 3 compliance pass):
   - /health now includes "success" for contract consistency.
   - DB error responses no longer expose raw exception messages, which
     could leak internal implementation details (table names, file paths).
+  - GET /dashboard now serves index.html from Flask's own origin, which
+    eliminates CORS entirely for the web dashboard client.
 
 New in v3.1:
   - _latest_cache: dedicated TTL cache for /telemetry/latest.
@@ -31,6 +33,7 @@ Environment variables:
 
 import csv
 import io
+import os
 import random
 import logging
 import uuid
@@ -39,7 +42,10 @@ from datetime import datetime, timezone
 from time import monotonic
 
 
-from flask import Flask, Response, jsonify, request, g
+# send_from_directory is added here so Flask can serve index.html as a
+# proper same-origin page, which eliminates the CORS null-origin problem
+# that occurs when index.html is opened directly from the file system.
+from flask import Flask, Response, jsonify, request, g, send_from_directory
 from config import DEBUG, PORT, RATE_LIMIT, STATS_CACHE_TTL
 from database import (
     DatabaseError,
@@ -323,7 +329,7 @@ def _pagination_meta(total: int, limit: int, offset: int) -> dict:
 def home():
     """Index — service metadata and full endpoint map."""
     return jsonify({
-        "success": True,   # v3.2: added for contract consistency
+        "success": True,
         "service": "Space Dogs Telemetry API",
         "version": "3.2",
         "status":  "running",
@@ -331,6 +337,7 @@ def home():
         "event":   "Global Hack Week: Cloud - March 2026",
         "endpoints": {
             "GET  /":                      "This index page",
+            "GET  /dashboard":             "Mission Control web dashboard",
             "GET  /health":                "Lightweight health check",
             "POST /telemetry":             "Generate & save one reading (optional JSON body)",
             "GET  /telemetry/latest":      "Retrieve the most recent record (cache-aware)",
@@ -346,17 +353,44 @@ def home():
     })
 
 
+@app.route("/dashboard")
+def dashboard():
+    """
+    Serves the Mission Control web dashboard (index.html).
+
+    Why serve it through Flask instead of opening the file directly?
+    When a browser opens a local file via file://, it sends Origin: null on
+    every cross-origin fetch. Chrome does NOT match Origin: null against the
+    wildcard Access-Control-Allow-Origin: * header, so every API call from
+    the page is silently blocked — the dashboard shows nothing even though
+    the API is running fine.
+
+    By serving index.html from this route, the page's origin becomes
+    http://127.0.0.1:5000 — identical to the API's origin. Same-origin
+    requests are never subject to CORS restrictions at all, so the browser
+    sends every fetch freely without any preflight dance.
+
+    Access the dashboard at: http://127.0.0.1:5000/dashboard
+    """
+    # os.path.dirname(__file__) gives us the folder containing app.py,
+    # which is the same folder that contains index.html. Flask's
+    # send_from_directory requires a directory and a filename separately
+    # so it can safely validate the path and prevent directory traversal.
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    return send_from_directory(base_dir, "index.html")
+
+
 @app.route("/health")
 def health_check():
     """
-    Lightweight ping -- no database touch, no telemetry generated.
+    Lightweight ping — no database touch, no telemetry generated.
 
     v3.2: added "success" so this endpoint obeys the same contract as every
     other route. Previously it returned only "status" and "timestamp", making
     it the one outlier in the entire API.
     """
     return jsonify({
-        "success":   True,          # v3.2: added for contract consistency
+        "success":   True,
         "status":    "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
@@ -372,7 +406,7 @@ def telemetry_generate():
     Previously, a plain-text or form body would silently become {} instead of
     raising an error, meaning bad input could appear to succeed.
 
-    POST body (all fields optional -- omit any to simulate it):
+    POST body (all fields optional — omit any to simulate it):
         {
             "temperature": 47.3,
             "battery_level": 12,
@@ -380,9 +414,6 @@ def telemetry_generate():
         }
     """
     try:
-        # v3.2: explicit Content-Type guard.
-        # 415 Unsupported Media Type is the correct HTTP status here -- the
-        # server understands the request but refuses the media format.
         if request.method == "POST" and not request.is_json:
             return jsonify({
                 "success": False,
@@ -447,15 +478,13 @@ def telemetry_generate():
         )
         record.id = save_telemetry(record)
         _stats_cache.invalidate()
-        _latest_cache.invalidate()   # a new record changes what "latest" means
+        _latest_cache.invalidate()
 
         return jsonify({"success": True, "data": record.to_dict()}), 201
 
     except ValidationError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     except DatabaseError as exc:
-        # v3.2: log the real exception internally but return a generic message
-        # so we never leak table names, column names, or file paths to callers.
         logger.error("DB error on POST /telemetry: %s", exc)
         return jsonify({"success": False, "error": "Database unavailable. Please try again later."}), 503
 
@@ -466,15 +495,12 @@ def telemetry_latest():
     Returns the single most-recent telemetry record.
 
     Cache strategy (two-level, write-through invalidation):
-      Level 1 -- _latest_cache: serve from memory with zero DB queries.
-      Level 2 -- database: on a miss, query and populate the cache.
-
-    The cache is invalidated eagerly on every write endpoint, so it never
-    returns stale data after a POST or DELETE regardless of TTL time left.
+      Level 1 — _latest_cache: serve from memory with zero DB queries.
+      Level 2 — database: on a miss, query and populate the cache.
 
     Response contract:
-      200 + "status": "ok"    -- record found (from cache or DB)
-      404 + "status": "empty" -- database has no records yet
+      200 + "status": "ok"    — record found (from cache or DB)
+      404 + "status": "empty" — database has no records yet
     """
     try:
         cached = _latest_cache.get()
@@ -487,7 +513,7 @@ def telemetry_latest():
                 "data":    cached,
             }), 200
 
-        logger.info("Cache miss on /telemetry/latest -- querying database")
+        logger.info("Cache miss on /telemetry/latest — querying database")
         row = get_latest_telemetry()
 
         if row is None:
@@ -538,7 +564,7 @@ def telemetry_bulk():
     Generates N telemetry readings and inserts them all in one fast batch.
 
     Query parameter:
-        count -- number of readings to generate (default: 10, max: 500)
+        count — number of readings to generate (default: 10, max: 500)
 
     Example: POST /telemetry/bulk?count=100
     """
@@ -547,7 +573,7 @@ def telemetry_bulk():
         records  = [_build_record() for _ in range(count)]
         inserted = bulk_save_telemetry(records)
         _stats_cache.invalidate()
-        _latest_cache.invalidate()   # bulk insert changes what "latest" means
+        _latest_cache.invalidate()
 
         return jsonify({
             "success": True,
@@ -575,8 +601,8 @@ def telemetry_history():
     contract. Previously used "records" at the top level.
 
     Query parameters:
-        page  -- page number (default: 1)
-        limit -- records per page (default: 20, max: 100)
+        page  — page number (default: 1)
+        limit — records per page (default: 20, max: 100)
     """
     try:
         limit, offset  = _parse_pagination()
@@ -584,7 +610,7 @@ def telemetry_history():
         return jsonify({
             "success":    True,
             "pagination": _pagination_meta(total, limit, offset),
-            "data":       [r.to_dict() for r in records],  # v3.2: was "records"
+            "data":       [r.to_dict() for r in records],
         })
     except ValueError:
         return jsonify({"success": False, "error": "'page' and 'limit' must be integers."}), 400
@@ -630,7 +656,7 @@ def telemetry_search():
         return jsonify({
             "success":    True,
             "pagination": _pagination_meta(total, limit, offset),
-            "data":       [r.to_dict() for r in records],  # v3.2: was "records"
+            "data":       [r.to_dict() for r in records],
         })
 
     except ValidationError as exc:
@@ -656,8 +682,8 @@ def telemetry_anomalies():
         records = get_anomalies(limit=limit)
         return jsonify({
             "success": True,
-            "count":   len(records),                       # convenience field
-            "data":    [r.to_dict() for r in records],    # v3.2: was "records"
+            "count":   len(records),
+            "data":    [r.to_dict() for r in records],
         })
     except ValueError:
         return jsonify({"success": False, "error": "'limit' must be an integer."}), 400
@@ -675,16 +701,16 @@ def telemetry_stats():
     Previously used "stats" at the top level.
 
     The "cached" field tells you whether the response came from memory or a
-    fresh database scan -- useful for debugging and observability.
+    fresh database scan — useful for debugging and observability.
     """
     try:
         cached = _stats_cache.get()
         if cached is not None:
-            return jsonify({"success": True, "cached": True,  "data": cached})  # v3.2: was "stats"
+            return jsonify({"success": True, "cached": True,  "data": cached})
 
         stats = get_telemetry_stats()
         _stats_cache.set(stats)
-        return jsonify({"success": True, "cached": False, "data": stats})       # v3.2: was "stats"
+        return jsonify({"success": True, "cached": False, "data": stats})
 
     except DatabaseError as exc:
         logger.error("DB error on /telemetry/stats: %s", exc)
@@ -699,7 +725,7 @@ def telemetry_export_csv():
     The Content-Disposition header tells the browser to download the
     response as a file rather than displaying it inline.
 
-    Try it in your browser: visit /telemetry/export.csv -- it downloads!
+    Try it in your browser: visit /telemetry/export.csv — it downloads!
     """
     try:
         columns, rows = get_all_rows_for_export()
@@ -728,7 +754,7 @@ def telemetry_delete_old():
     Prunes the oldest records, keeping only the most recent N.
 
     Query parameter:
-        keep -- how many recent records to preserve (default: 1000)
+        keep — how many recent records to preserve (default: 1000)
 
     Example: DELETE /telemetry/old?keep=500
     """
@@ -737,7 +763,7 @@ def telemetry_delete_old():
         deleted = delete_old_records(keep_last_n=keep)
         if deleted:
             _stats_cache.invalidate()
-            _latest_cache.invalidate()   # deleting old records may change "latest"
+            _latest_cache.invalidate()
 
         return jsonify({
             "success": True,

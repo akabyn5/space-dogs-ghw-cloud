@@ -8,9 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
 
   <style>
-    /* =====================================================================
-       DESIGN SYSTEM v3
-       ===================================================================== */
     :root {
       --bg:          #03080f;
       --bg-panel:    #060d17;
@@ -33,8 +30,6 @@
       font-family: var(--font-mono); font-size: 14px;
       min-height: 100vh; overflow-x: hidden;
     }
-
-    /* Stars */
     body::before {
       content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
       background-image:
@@ -49,15 +44,12 @@
         radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,.11) 0%, transparent 100%),
         radial-gradient(1px 1px at 44% 30%, rgba(255,255,255,.08) 0%, transparent 100%);
     }
-    /* CRT scanlines */
     body::after {
       content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
       background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.065) 2px, rgba(0,0,0,.065) 4px);
     }
-
     #app { position: relative; z-index: 1; max-width: 1360px; margin: 0 auto; padding: 0 16px; }
 
-    /* ── HEADER ── */
     header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 0 12px; border-bottom: 1px solid var(--border-glow);
@@ -93,7 +85,6 @@
     .kbd { font-size: .58rem; color: var(--dim); letter-spacing: .06em; border: 1px solid var(--border); border-radius: 2px; padding: 2px 5px; }
     .kbd span { color: var(--cyan); margin-right: 2px; }
 
-    /* ── STATUS BAR ── */
     .statusbar {
       display: flex; gap: 20px; padding: 6px 0;
       font-size: .68rem; border-bottom: 1px solid var(--border); flex-wrap: wrap;
@@ -105,7 +96,6 @@
     .statusbar .val.warn { color: var(--amber); }
     .statusbar .val.err  { color: var(--red); }
 
-    /* ── PANEL ── */
     .panel {
       background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px;
       box-shadow: 0 0 0 1px rgba(0,212,255,.04), inset 0 1px 0 rgba(255,255,255,.03);
@@ -125,11 +115,9 @@
       padding: 1px 6px; border-radius: 2px; letter-spacing: .05em;
     }
 
-    /* ── TOP GRID: Live Telemetry + Stats ── */
     .grid-main { display: grid; grid-template-columns: 1fr 260px; gap: 14px; margin-top: 12px; }
     @media(max-width:820px) { .grid-main { grid-template-columns: 1fr; } }
 
-    /* ── LIVE TELEMETRY ── */
     .telemetry-body { padding: 14px 16px; }
     .status-badge {
       display: inline-flex; align-items: center; gap: 8px; padding: 4px 14px; border-radius: 2px;
@@ -142,10 +130,8 @@
     @keyframes warn-flash { 0%,100%{opacity:1} 50%{opacity:.5} }
     @keyframes crit-flash { 0%,100%{opacity:1} 50%{opacity:.2} }
 
-    /* 2×2 grid inside telemetry panel */
     .tele-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; margin-top: 14px; }
     @media(max-width:520px) { .tele-row { grid-template-columns: 1fr; } }
-
     .tele-field { display: flex; flex-direction: column; gap: 5px; }
     .tele-label { font-size: .62rem; letter-spacing: .18em; color: var(--dim); text-transform: uppercase; }
     .tele-value {
@@ -154,7 +140,6 @@
     }
     .tele-value .unit { font-size: .85rem; font-weight: 400; color: var(--dim); margin-left: 4px; }
 
-    /* Flash animation on value update */
     @keyframes value-flash {
       0%   { text-shadow: none; }
       25%  { text-shadow: 0 0 20px var(--cyan); color: var(--cyan); }
@@ -162,7 +147,6 @@
     }
     .flash { animation: value-flash .65s ease-out forwards; }
 
-    /* Flat bar (temperature only) */
     .bar-track {
       height: 5px; background: var(--bg-raised);
       border: 1px solid var(--border); border-radius: 2px; overflow: hidden;
@@ -175,15 +159,6 @@
     .bar-fill.amber { background: linear-gradient(90deg,#8c5a00,var(--amber)); box-shadow:0 0 5px var(--amber); }
     .bar-fill.red   { background: linear-gradient(90deg,#7a0018,var(--red));   box-shadow:0 0 5px var(--red); }
 
-    /* ── SVG ARC GAUGE (Battery & Signal) ──
-       The gauge uses a circle with stroke-dasharray to draw a 270° arc.
-       Circumference of r=44 = 2πr ≈ 276.46px
-       270° arc = 276.46 × 0.75 ≈ 207.35px
-       rotate(135°) positions the start at the bottom-left (7:30 clock)
-       stroke-dashoffset animates the fill: 0 = full, 207.35 = empty */
-    .gauge-wrap {
-      display: flex; flex-direction: column; align-items: center; gap: 2px;
-    }
     .gauge-svg { width: 90px; height: 90px; overflow: visible; }
     .gauge-track {
       fill: none; stroke: var(--bg-raised); stroke-width: 7; stroke-linecap: round;
@@ -192,36 +167,21 @@
     .gauge-arc {
       fill: none; stroke-width: 7; stroke-linecap: round;
       stroke-dasharray: 207.35 276.46;
-      stroke-dashoffset: 207.35; /* 0% by default */
+      stroke-dashoffset: 207.35;
       transition: stroke-dashoffset .85s cubic-bezier(.25,.8,.25,1), stroke .4s;
     }
-    .gauge-val-text {
-      font-family: var(--font-head); font-size: 15px; font-weight: 700;
-      fill: var(--text-bright); text-anchor: middle; dominant-baseline: middle;
-    }
-    .gauge-pct-text {
-      font-family: var(--font-head); font-size: 7px; fill: var(--dim);
-      text-anchor: middle;
-    }
-    .gauge-label-text {
-      font-family: var(--font-mono); font-size: 6px; fill: var(--dim);
-      text-anchor: middle; letter-spacing: 1.5px;
-    }
+    .gauge-val-text  { font-family: var(--font-head); font-size: 15px; font-weight: 700; fill: var(--text-bright); text-anchor: middle; dominant-baseline: middle; }
+    .gauge-pct-text  { font-family: var(--font-head); font-size: 7px; fill: var(--dim); text-anchor: middle; }
+    .gauge-label-text{ font-family: var(--font-mono); font-size: 6px; fill: var(--dim); text-anchor: middle; letter-spacing: 1.5px; }
 
-    /* Subsystem status cell */
     .tele-status-cell { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
-
-    /* Timestamp + sparkline row */
     .tele-bottom { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
     .tele-ts { font-size: .66rem; color: var(--dim); }
     .tele-ts span { color: var(--cyan); }
     .sparkline-label { font-size: .58rem; letter-spacing: .16em; color: var(--dim); text-transform: uppercase; }
-    .sparkline {
-      display: flex; align-items: flex-end; gap: 3px; height: 36px; padding: 0 1px;
-    }
+    .sparkline { display: flex; align-items: flex-end; gap: 3px; height: 36px; padding: 0 1px; }
     .spark-bar { flex: 1; border-radius: 1px 1px 0 0; min-width: 3px; transition: height .5s cubic-bezier(.25,.8,.25,1), background .4s; }
 
-    /* ── STATS PANEL ── */
     .stats-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
     .stat-item { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 8px; background: var(--bg-raised); border-radius: 2px; }
     .stat-lbl { font-size: .62rem; letter-spacing: .09em; color: var(--dim); text-transform: uppercase; }
@@ -229,15 +189,10 @@
     .stat-val.danger { color: var(--red); }
     .stat-val.warn   { color: var(--amber); }
 
-    /* ── TREND CHART PANEL ── */
     .chart-panel { margin-top: 14px; }
     .chart-body  { padding: 10px 14px 12px; }
-    #trend-canvas {
-      display: block; width: 100%; height: 150px;
-      /* Canvas is pixel-art — the actual resolution is set by JS */
-    }
+    #trend-canvas { display: block; width: 100%; height: 150px; }
 
-    /* ── CONTROLS ── */
     .controls { display: flex; gap: 8px; padding: 10px 0; flex-wrap: wrap; align-items: center; }
     .btn {
       font-family: var(--font-head); font-size: .60rem; letter-spacing: .13em;
@@ -274,7 +229,6 @@
     .ctrl-divider { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
     .ctrl-label { font-size: .58rem; color: var(--dim); letter-spacing: .1em; }
 
-    /* ── SEARCH PANEL ── */
     .search-panel { overflow: hidden; max-height: 0; transition: max-height .35s ease; }
     .search-panel.open { max-height: 260px; }
     .search-body {
@@ -293,11 +247,9 @@
     .search-actions { display: flex; align-items: flex-end; gap: 7px; }
     #search-results-section { margin-top: 14px; display: none; }
 
-    /* ── BOTTOM GRID: History | Anomalies ── */
     .grid-bottom { display: grid; grid-template-columns: 1fr 300px; gap: 14px; margin-top: 14px; }
     @media(max-width:820px) { .grid-bottom { grid-template-columns: 1fr; } }
 
-    /* ── TABLE ── */
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: .74rem; }
     th {
@@ -311,7 +263,6 @@
     .data-row.expanded td { background: var(--bg-raised); color: var(--text-bright); }
     tr:last-child td { border-bottom: none; }
 
-    /* Expandable detail row */
     .detail-row td { padding: 0; border-bottom: 1px solid var(--border); }
     .detail-content {
       background: linear-gradient(135deg, rgba(0,212,255,.04), rgba(0,230,118,.02));
@@ -323,7 +274,6 @@
     .detail-lbl  { font-size: .58rem; letter-spacing: .15em; color: var(--dim); text-transform: uppercase; }
     .detail-val  { font-family: var(--font-head); font-size: .78rem; color: var(--text-bright); }
 
-    /* Expand chevron indicator */
     .expand-icon { font-size: .7rem; color: var(--dim); transition: transform .2s; display: inline-block; }
     .expanded .expand-icon { transform: rotate(90deg); color: var(--cyan); }
 
@@ -348,7 +298,6 @@
     .pg-btn:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); }
     .pg-btn:disabled { opacity: .3; cursor: default; }
 
-    /* ── ANOMALY FEED ── */
     .anomaly-feed { display: flex; flex-direction: column; max-height: 360px; overflow-y: auto; }
     .anomaly-item {
       padding: 9px 14px; border-bottom: 1px solid var(--border);
@@ -365,7 +314,6 @@
     .anomaly-time    { font-size: .60rem; color: var(--dim); }
     .empty-state { padding: 22px; text-align: center; color: var(--dim); font-size: .72rem; letter-spacing: .1em; }
 
-    /* ── EVENT LOG PANEL ── */
     .event-log-panel { margin-top: 14px; }
     .log-body { padding: 0; max-height: 200px; overflow-y: auto; }
     .log-entry {
@@ -383,7 +331,6 @@
     .log-entry.log-info    .log-msg { color: var(--cyan); }
     .log-entry.log-system  .log-msg { color: var(--dim); font-style: italic; }
 
-    /* ── TOASTS ── */
     #toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 10000; }
     .toast {
       padding: 9px 15px; border-radius: 2px; font-size: .74rem;
@@ -402,7 +349,6 @@
     }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-    /* ── FOOTER ── */
     footer {
       margin-top: 28px; border-top: 1px solid var(--border-glow);
       background: var(--bg-panel); padding: 22px 20px 26px;
@@ -453,7 +399,6 @@
 <body>
 <div id="app">
 
-<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
 <header>
   <div class="header-left">
     <img class="logo-img"
@@ -480,21 +425,18 @@
   </div>
 </header>
 
-<!-- ═══════════════════════════════ STATUS BAR ═══════════════════════════════ -->
 <div class="statusbar">
-  <div class="item"><span class="label">UTC</span>           <span class="val" id="sb-last-update">—</span></div>
-  <div class="item"><span class="label">RECORDS</span>       <span class="val" id="sb-total">—</span></div>
-  <div class="item"><span class="label">ANOMALIES</span>     <span class="val" id="sb-anomalies">—</span></div>
-  <div class="item"><span class="label">SESSION</span>       <span class="val ok" id="sb-session">0 generated</span></div>
-  <div class="item"><span class="label">RESPONSE</span>      <span class="val" id="sb-response">—</span></div>
-  <div class="item"><span class="label">HEALTH</span>        <span class="val" id="sb-health">CHECKING…</span></div>
-  <div class="item"><span class="label">API</span>           <span class="val" style="color:var(--dim)">127.0.0.1:5000</span></div>
+  <div class="item"><span class="label">UTC</span>       <span class="val" id="sb-last-update">—</span></div>
+  <div class="item"><span class="label">RECORDS</span>   <span class="val" id="sb-total">—</span></div>
+  <div class="item"><span class="label">ANOMALIES</span> <span class="val" id="sb-anomalies">—</span></div>
+  <div class="item"><span class="label">SESSION</span>   <span class="val ok" id="sb-session">0 generated</span></div>
+  <div class="item"><span class="label">RESPONSE</span> <span class="val" id="sb-response">—</span></div>
+  <div class="item"><span class="label">HEALTH</span>   <span class="val" id="sb-health">CHECKING…</span></div>
+  <div class="item"><span class="label">API</span>       <span class="val" style="color:var(--dim)">127.0.0.1:5000</span></div>
 </div>
 
-<!-- ═══════════════════════════════ MAIN GRID ═══════════════════════════════ -->
 <div class="grid-main">
 
-  <!-- Live Telemetry -->
   <div class="panel">
     <div class="panel-title">
       Live Telemetry
@@ -502,22 +444,16 @@
     </div>
     <div class="telemetry-body">
       <div id="status-badge" class="status-badge nominal">● NOMINAL</div>
-
       <div class="tele-row">
 
-        <!-- Temperature (flat bar — has a physical range, not just 0-100) -->
         <div class="tele-field">
           <div class="tele-label">Temperature</div>
           <div class="tele-value" id="val-temp"><span class="shimmer"></span></div>
           <div class="bar-track"><div class="bar-fill green" id="bar-temp" style="width:0%"></div></div>
         </div>
 
-        <!-- Battery — SVG arc gauge -->
         <div class="tele-field">
           <div class="tele-label">Battery Level</div>
-          <!-- The arc is drawn with stroke-dasharray + stroke-dashoffset.
-               ARC=207.35 is the 270° portion of the full circumference (276.46).
-               rotate(135°) starts the arc at the 7:30 clock position. -->
           <svg class="gauge-svg" viewBox="0 0 110 110" aria-label="Battery gauge">
             <defs>
               <filter id="glow-green"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
@@ -533,7 +469,6 @@
           </svg>
         </div>
 
-        <!-- Signal — SVG arc gauge -->
         <div class="tele-field">
           <div class="tele-label">Signal Strength</div>
           <svg class="gauge-svg" viewBox="0 0 110 110" aria-label="Signal gauge">
@@ -546,15 +481,12 @@
           </svg>
         </div>
 
-        <!-- Subsystem status -->
         <div class="tele-status-cell">
           <div class="tele-label">Subsystem</div>
           <div id="val-subsystem"><span class="shimmer"></span></div>
         </div>
 
       </div>
-
-      <!-- Timestamp + sparkline -->
       <div class="tele-bottom">
         <div class="tele-ts">TIMESTAMP &nbsp;<span id="val-timestamp">—</span></div>
         <div class="sparkline-label">Temperature history — last 20 readings</div>
@@ -563,53 +495,45 @@
     </div>
   </div>
 
-  <!-- Stats -->
   <div class="panel">
     <div class="panel-title">Mission Stats</div>
     <div class="stats-body">
-      <div class="stat-item"><span class="stat-lbl">Total Records</span>   <span class="stat-val" id="stat-total"    data-raw="0">—</span></div>
-      <div class="stat-item"><span class="stat-lbl">Avg Temperature</span> <span class="stat-val" id="stat-avg-temp" data-raw="0">—</span></div>
-      <div class="stat-item"><span class="stat-lbl">Min Temp</span>        <span class="stat-val" id="stat-min-temp" data-raw="0">—</span></div>
-      <div class="stat-item"><span class="stat-lbl">Max Temp</span>        <span class="stat-val" id="stat-max-temp" data-raw="0">—</span></div>
-      <div class="stat-item"><span class="stat-lbl">Avg Battery</span>     <span class="stat-val" id="stat-avg-batt" data-raw="0">—</span></div>
-      <div class="stat-item"><span class="stat-lbl">Min Battery</span>     <span class="stat-val" id="stat-min-batt" data-raw="0">—</span></div>
-      <div class="stat-item"><span class="stat-lbl">Avg Signal</span>      <span class="stat-val" id="stat-avg-sig"  data-raw="0">—</span></div>
+      <div class="stat-item"><span class="stat-lbl">Total Records</span>   <span class="stat-val" id="stat-total"     data-raw="0">—</span></div>
+      <div class="stat-item"><span class="stat-lbl">Avg Temperature</span> <span class="stat-val" id="stat-avg-temp"  data-raw="0">—</span></div>
+      <div class="stat-item"><span class="stat-lbl">Min Temp</span>        <span class="stat-val" id="stat-min-temp"  data-raw="0">—</span></div>
+      <div class="stat-item"><span class="stat-lbl">Max Temp</span>        <span class="stat-val" id="stat-max-temp"  data-raw="0">—</span></div>
+      <div class="stat-item"><span class="stat-lbl">Avg Battery</span>     <span class="stat-val" id="stat-avg-batt"  data-raw="0">—</span></div>
+      <div class="stat-item"><span class="stat-lbl">Min Battery</span>     <span class="stat-val" id="stat-min-batt"  data-raw="0">—</span></div>
+      <div class="stat-item"><span class="stat-lbl">Avg Signal</span>      <span class="stat-val" id="stat-avg-sig"   data-raw="0">—</span></div>
       <div class="stat-item"><span class="stat-lbl">Anomalies</span>       <span class="stat-val" id="stat-anomalies" data-raw="0">—</span></div>
       <div class="stat-item"><span class="stat-lbl">First Reading</span>   <span class="stat-val" id="stat-first" style="font-size:.62rem">—</span></div>
       <div class="stat-item"><span class="stat-lbl">Last Reading</span>    <span class="stat-val" id="stat-last"  style="font-size:.62rem">—</span></div>
     </div>
   </div>
 
-</div><!-- /grid-main -->
+</div>
 
-<!-- ═══════════════════════════════ TREND CHART ═══════════════════════════════ -->
 <div class="panel chart-panel">
   <div class="panel-title">
     Multi-Metric Trend — Last 20 Readings
     <span class="tag">TEMP % · BATTERY · SIGNAL</span>
   </div>
   <div class="chart-body">
-    <!-- Canvas chart: drawn with pure JS, no library.
-         Temperature is scaled to 0-100% (dividing by 55) so all three
-         metrics share the same Y-axis scale. -->
     <canvas id="trend-canvas"></canvas>
   </div>
 </div>
 
-<!-- ═══════════════════════════════ CONTROLS ═══════════════════════════════ -->
 <div class="controls">
-  <button class="btn btn-green"  onclick="generateOne()"  title="Keyboard: G">▶ GENERATE</button>
+  <button class="btn btn-green" onclick="generateOne()" title="Keyboard: G">▶ GENERATE</button>
 
-  <button class="btn btn-cyan"   onclick="generateBulk()" title="Keyboard: B">
+  <button class="btn btn-cyan" onclick="generateBulk()" title="Keyboard: B">
     ⊕ BULK ×<input class="ctrl-num" id="bulk-count" type="number" value="10" min="1" max="500"
       onclick="event.stopPropagation()" />
   </button>
 
   <div class="ctrl-divider"></div>
-
   <button class="btn btn-dim" id="auto-btn" onclick="toggleAuto()" title="Keyboard: R">⟳ AUTO: OFF</button>
-  <!-- Interval selector: lets the user choose how often auto-refresh fires -->
-  <select class="ctrl-select" id="auto-interval" title="Auto-refresh interval">
+  <select class="ctrl-select" id="auto-interval">
     <option value="3000">3 s</option>
     <option value="5000" selected>5 s</option>
     <option value="10000">10 s</option>
@@ -617,27 +541,21 @@
   </select>
 
   <div class="ctrl-divider"></div>
-
   <button class="btn btn-dim btn-search" id="search-btn" onclick="toggleSearch()" title="Keyboard: F">⌕ FILTER</button>
 
   <div class="ctrl-divider"></div>
-
-  <!-- Prune: deletes all but the most recent N records from the DB -->
   <button class="btn btn-red" onclick="pruneRecords()" title="Keyboard: P">✕ PRUNE OLD</button>
   <span class="ctrl-label">KEEP</span>
   <input class="ctrl-num" id="prune-keep" type="number" value="1000" min="1" />
 
   <div class="ctrl-divider"></div>
-
   <a href="http://127.0.0.1:5000/telemetry/export.csv" target="_blank" style="text-decoration:none">
     <button class="btn btn-amber">↓ CSV</button>
   </a>
 </div>
 
-<!-- ── Search/Filter Panel (slide-down) ── -->
 <div class="panel search-panel" id="search-panel">
   <div class="search-body">
-
     <div class="search-field" style="min-width:120px">
       <label>Status</label>
       <select class="search-select" id="sf-status">
@@ -647,7 +565,6 @@
         <option value="critical">Critical</option>
       </select>
     </div>
-
     <div class="search-field">
       <label>Min Battery %</label>
       <input class="search-input" id="sf-min-batt" type="number" min="0" max="100" placeholder="0" />
@@ -656,7 +573,6 @@
       <label>Max Battery %</label>
       <input class="search-input" id="sf-max-batt" type="number" min="0" max="100" placeholder="100" />
     </div>
-
     <div class="search-field">
       <label>Min Temp °C</label>
       <input class="search-input" id="sf-min-temp" type="number" placeholder="-100" />
@@ -665,17 +581,14 @@
       <label>Max Temp °C</label>
       <input class="search-input" id="sf-max-temp" type="number" placeholder="150" />
     </div>
-
-    <!-- Date range: wired to from_ts / to_ts query params on /telemetry/search -->
     <div class="search-field" style="min-width:160px">
       <label>From (ISO 8601)</label>
       <input class="search-input" id="sf-from-ts" type="text" placeholder="2026-03-15T00:00:00" />
     </div>
     <div class="search-field" style="min-width:160px">
       <label>To (ISO 8601)</label>
-      <input class="search-input" id="sf-to-ts"   type="text" placeholder="2026-03-15T23:59:59" />
+      <input class="search-input" id="sf-to-ts" type="text" placeholder="2026-03-15T23:59:59" />
     </div>
-
     <div class="search-actions">
       <button class="btn btn-cyan" onclick="runSearch(1)">SEARCH</button>
       <button class="btn btn-dim"  onclick="clearSearch()">CLEAR</button>
@@ -683,7 +596,6 @@
   </div>
 </div>
 
-<!-- Search results (appear below filter panel) -->
 <div id="search-results-section">
   <div class="panel" style="margin-top:0">
     <div class="panel-title">
@@ -706,10 +618,8 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════ BOTTOM GRID ═══════════════════════════════ -->
 <div class="grid-bottom">
 
-  <!-- History table with click-to-expand rows -->
   <div class="panel">
     <div class="panel-title">
       Telemetry History
@@ -718,10 +628,7 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr>
-            <th>▸</th><th>ID</th><th>Timestamp</th>
-            <th>Temp (°C)</th><th>Batt %</th><th>Sig %</th><th>Status</th>
-          </tr>
+          <tr><th>▸</th><th>ID</th><th>Timestamp</th><th>Temp (°C)</th><th>Batt %</th><th>Sig %</th><th>Status</th></tr>
         </thead>
         <tbody id="history-body">
           <tr><td colspan="7" class="empty-state">LOADING…</td></tr>
@@ -737,7 +644,6 @@
     </div>
   </div>
 
-  <!-- Anomaly Feed -->
   <div class="panel">
     <div class="panel-title">
       Anomaly Feed
@@ -748,9 +654,8 @@
     </div>
   </div>
 
-</div><!-- /grid-bottom -->
+</div>
 
-<!-- ═══════════════════════════════ EVENT LOG ═══════════════════════════════ -->
 <div class="panel event-log-panel">
   <div class="panel-title">
     Mission Event Log
@@ -763,12 +668,9 @@
 
 </div><!-- /#app -->
 
-<!-- ═══════════════════════════════ FOOTER ═══════════════════════════════ -->
 <footer>
   <div class="footer-title">// Mission Context — Global Hack Week: Cloud 2026 //</div>
   <div class="footer-grid">
-
-    <!-- Left: Space Dogs + Int'l Projects logos -->
     <div class="footer-logos-left">
       <div class="footer-logo-row">
         <img class="footer-logo-img"
@@ -788,8 +690,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Centre: credits + MLH logo -->
     <div class="footer-credits">
       <div class="team">JOSÉ &amp; MARYFER</div>
       <div class="event">
@@ -802,63 +702,84 @@
         alt="Major League Hacking" />
       <div class="copy">© 2026 Space Dogs — All telemetry simulated</div>
     </div>
-
-    <!-- Right: GHW event banner -->
     <div class="footer-logos-right">
       <img class="footer-event-img"
         src="https://live.staticflickr.com/65535/55118486651_fc41f57e86_w.jpg"
         alt="Global Hack Week Cloud" />
     </div>
-
   </div>
 </footer>
 
 <div id="toast-container"></div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════════════════════════════════════════════════ -->
 <script>
-  /* ======================================================================
+  /* =====================================================================
      CONFIGURATION
-  ====================================================================== */
+     All tuneable constants live here so you never have to search through
+     function bodies to change a URL or a page size.
+  ===================================================================== */
   const API_BASE      = 'http://127.0.0.1:5000';
   const HISTORY_LIMIT = 15;
   const SEARCH_LIMIT  = 15;
   const SPARKLINE_MAX = 20;
   const CHART_MAX     = 20;
 
-  /* ======================================================================
-     STATE — all mutable values are declared here so the entire app's
-     memory is visible in one place. This is much clearer than having
-     variables scattered throughout different functions.
-  ====================================================================== */
-  let historyPage    = 1;
-  let searchPage     = 1;
-  let autoRefreshId  = null;
-  let isOnline       = false;
-  let searchOpen     = false;
-  let sessionCount   = 0;        // readings generated this browser session
+  // FIX: Every POST request needs this header because app.py v3.2 rejects
+  // requests without Content-Type: application/json with HTTP 415.
+  // Centralising it here means all fetch calls share the same headers object.
+  const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
-  // Rolling arrays for visualisations
-  const tempHistory  = [];       // for the sparkline (last 20 temperatures)
-  const chartHistory = [];       // for the canvas chart (last 20 full readings)
+  /* =====================================================================
+     STATE
+     All mutable runtime values are declared together so the app's memory
+     is visible in one place instead of scattered across functions.
+  ===================================================================== */
+  let historyPage   = 1;
+  let searchPage    = 1;
+  let autoRefreshId = null;
+  let isOnline      = false;
+  let searchOpen    = false;
+  let sessionCount  = 0;
 
-  // Event log: newest entries at the front, max 100 entries kept
-  const eventLog     = [];
+  const tempHistory  = [];   // rolling buffer for the sparkline
+  const chartHistory = [];   // rolling buffer for the canvas trend chart
+  const eventLog     = [];   // mission event log entries, newest first
 
-  /* ======================================================================
+  /* =====================================================================
      API WRAPPER
-     All network calls go through here. This is where we:
-       1. Handle connection errors centrally (setOnline)
-       2. Read the X-Response-Time-Ms header that app.py adds
-       3. Surface API error messages cleanly
-  ====================================================================== */
+     All fetch calls go through apiFetch() so that:
+       1. The Content-Type header is always present on POST requests.
+       2. The X-Response-Time-Ms header (added by app.py) is always read.
+       3. Connection status is always updated based on success or failure.
+       4. API error messages from the JSON body are surfaced clearly.
+  ===================================================================== */
   async function apiFetch(path, options = {}) {
     try {
+      // v3.2 of the API requires Content-Type: application/json on all POST
+      // and DELETE requests. Without it, Flask's request.is_json returns False
+      // and the endpoint immediately rejects the request with HTTP 415
+      // Unsupported Media Type — before any data is ever touched.
+      // We inject the header automatically here so every call site stays clean
+      // and no individual function needs to remember to add it.
+      if (options.method && options.method !== 'GET') {
+        options = {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {}),
+          },
+        };
+        // POST requests also need a body — even an empty one — otherwise some
+        // Flask versions treat a bodyless POST as a form submission rather
+        // than a JSON request, causing is_json to return False anyway.
+        if (options.method === 'POST' && !options.body) {
+          options.body = JSON.stringify({});
+        }
+      }
+
       const res = await fetch(API_BASE + path, options);
 
-      // Read response time from header BEFORE reading body
+      // app.py adds this header on every response — display it in the status bar
       const rt = res.headers.get('X-Response-Time-Ms');
       if (rt) {
         document.getElementById('sb-response').textContent =
@@ -866,22 +787,25 @@
       }
 
       if (!res.ok) {
+        // Extract the structured error message from the JSON body if possible
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `HTTP ${res.status}`);
       }
+
       setOnline(true);
       return await res.json();
+
     } catch (err) {
       setOnline(false);
       throw err;
     }
   }
 
-  /* ======================================================================
+  /* =====================================================================
      CONNECTION INDICATOR
-  ====================================================================== */
+  ===================================================================== */
   function setOnline(online) {
-    if (isOnline === online) return;
+    if (isOnline === online) return;   // avoid redundant DOM updates
     isOnline = online;
     document.getElementById('conn-dot').className =
       'conn-dot ' + (online ? 'online' : 'offline');
@@ -889,39 +813,42 @@
       online ? 'CONNECTED' : 'OFFLINE';
   }
 
-  /* ======================================================================
-     HEALTH CHECK — GET /health (no DB touch, runs every 30 seconds)
-  ====================================================================== */
+  /* =====================================================================
+     HEALTH CHECK  —  GET /health
+     Runs immediately on load, then every 30 seconds. /health never touches
+     the database, so it's the lightest possible liveness probe.
+  ===================================================================== */
   async function checkHealth() {
     const el = document.getElementById('sb-health');
     try {
       await apiFetch('/health');
-      el.textContent = 'ONLINE'; el.className = 'val ok';
+      el.textContent = 'ONLINE';
+      el.className   = 'val ok';
       logEvent('Health check passed', 'system');
     } catch {
-      el.textContent = 'UNREACHABLE'; el.className = 'val err';
+      el.textContent = 'UNREACHABLE';
+      el.className   = 'val err';
       logEvent('Health check FAILED — API unreachable', 'error');
     }
   }
 
-  /* ======================================================================
+  /* =====================================================================
      TOAST NOTIFICATIONS
-  ====================================================================== */
+  ===================================================================== */
   function toast(msg, type = 'info', ms = 3200) {
     const el = Object.assign(document.createElement('div'), {
-      className: `toast ${type}`,
-      textContent: msg
+      className:   `toast ${type}`,
+      textContent: msg,
     });
     document.getElementById('toast-container').appendChild(el);
     setTimeout(() => el.remove(), ms);
   }
 
-  /* ======================================================================
+  /* =====================================================================
      MISSION EVENT LOG
-     logEvent(msg, type) adds one entry to the log array and re-renders.
-     Types: 'success' (green), 'info' (cyan), 'warn' (amber),
-            'error' (red), 'system' (dim/italic)
-  ====================================================================== */
+     Entries are prepended (newest first) and the list is capped at 100
+     so the DOM never grows unboundedly.
+  ===================================================================== */
   function logEvent(msg, type = 'info') {
     eventLog.unshift({ time: new Date(), msg, type });
     if (eventLog.length > 100) eventLog.pop();
@@ -945,59 +872,56 @@
     `).join('');
   }
 
-  /* ======================================================================
+  /* =====================================================================
      TIMESTAMP FORMATTER
-     Converts ISO 8601 UTC to the user's local timezone via the Intl API.
-  ====================================================================== */
+     Converts ISO 8601 UTC strings to a human-friendly local time string
+     using the browser's Intl API — respects the user's locale/timezone.
+  ===================================================================== */
   function formatTs(iso) {
     if (!iso) return '—';
     try {
       return new Intl.DateTimeFormat('default', {
-        year:'numeric', month:'short', day:'2-digit',
-        hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false
+        year: 'numeric', month: 'short', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
       }).format(new Date(iso));
     } catch { return iso; }
   }
 
-  /* ======================================================================
+  /* =====================================================================
      FLASH ANIMATION
-     Forces a CSS animation to restart even if it's already playing by
-     removing the class, triggering a reflow (offsetWidth forces the
-     browser to recalculate layout, effectively "resetting" the animation
-     timeline), then re-adding the class.
-  ====================================================================== */
+     Forces a CSS keyframe animation to restart even if it is already
+     running. The void el.offsetWidth line forces the browser to perform
+     a synchronous reflow, which resets the animation timeline.
+  ===================================================================== */
   function flashEl(id) {
     const el = document.getElementById(id);
     if (!el) return;
     el.classList.remove('flash');
-    void el.offsetWidth;   // ← reflow trick to reset CSS animation
+    void el.offsetWidth;   // reflow trick — resets the animation clock
     el.classList.add('flash');
     setTimeout(() => el.classList.remove('flash'), 700);
   }
 
-  /* ======================================================================
+  /* =====================================================================
      ANIMATED COUNT-UP
-     When a stat number changes, it animates from the old value to the
-     new one using requestAnimationFrame with an ease-out-cubic curve.
-
-     requestAnimationFrame is the browser's built-in "do this before
-     the next screen repaint" callback — it's much smoother and more
-     efficient than setInterval for animations.
-  ====================================================================== */
+     Smoothly animates a numeric stat from its previous value to a new
+     one using requestAnimationFrame with an ease-out-cubic curve.
+     The data-raw attribute stores the current target so the next call
+     knows where to animate FROM.
+  ===================================================================== */
   function animateCount(el, toVal, suffix = '', decimals = 0) {
-    const fromVal = parseFloat(el.dataset.raw) || 0;
+    const fromVal  = parseFloat(el.dataset.raw) || 0;
     el.dataset.raw = toVal;
 
     if (toVal == null || isNaN(toVal)) { el.textContent = '—'; return; }
 
-    const duration = 650;
+    const duration  = 650;
     const startTime = performance.now();
 
     function step(now) {
       const elapsed  = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease-out cubic: starts fast, decelerates to a stop
-      const eased    = 1 - Math.pow(1 - progress, 3);
+      const eased    = 1 - Math.pow(1 - progress, 3);   // ease-out cubic
       const current  = fromVal + (toVal - fromVal) * eased;
       el.textContent = current.toFixed(decimals) + suffix;
       if (progress < 1) requestAnimationFrame(step);
@@ -1005,47 +929,40 @@
     requestAnimationFrame(step);
   }
 
-  /* ======================================================================
-     SVG ARC GAUGE UPDATE
-     The gauge uses stroke-dashoffset to control how much of the
-     270° arc is visible:
-       - dashoffset = 0       → 100% full (completely filled arc)
-       - dashoffset = 207.35  → 0% empty  (arc completely hidden)
-       - dashoffset = 207.35 × (1 − value/100)  → value% filled
+  /* =====================================================================
+     SVG ARC GAUGE
+     The gauge is a circle with stroke-dasharray that draws a 270° arc.
+     stroke-dashoffset controls how much of the arc is visible:
+       offset = ARC_LENGTH × (1 - value/100)
+     So 0% battery → offset = 207.35 (fully hidden arc)
+     And 100% battery → offset = 0 (fully visible arc).
      The CSS transition on stroke-dashoffset animates this smoothly.
-  ====================================================================== */
-  const GAUGE_ARC = 207.35;  // length of the 270° arc in SVG units
+  ===================================================================== */
+  const GAUGE_ARC = 207.35;
 
   function updateGauge(id, value) {
     const arc = document.getElementById(`gauge-${id}-arc`);
     const val = document.getElementById(`gauge-${id}-val`);
     if (!arc || !val) return;
 
-    // Calculate dashoffset: 0% → fully hidden arc, 100% → fully shown
     arc.style.strokeDashoffset = GAUGE_ARC * (1 - value / 100);
 
-    // Choose colour and glow filter based on value
     let color, filterId;
-    if (value < 30) {
-      color = '#ff2d4a'; filterId = 'glow-red';
-    } else if (value < 60) {
-      color = '#ffaa00'; filterId = 'glow-amber';
-    } else {
-      color = '#00e676'; filterId = 'glow-green';
-    }
+    if      (value < 30) { color = '#ff2d4a'; filterId = 'glow-red';   }
+    else if (value < 60) { color = '#ffaa00'; filterId = 'glow-amber'; }
+    else                 { color = '#00e676'; filterId = 'glow-green'; }
+
     arc.style.stroke = color;
     arc.setAttribute('filter', `url(#${filterId})`);
     val.textContent  = value;
     val.style.fill   = color;
   }
 
-  /* ======================================================================
+  /* =====================================================================
      TEMPERATURE SPARKLINE
-     Maintains a circular buffer of the last SPARKLINE_MAX temperatures.
-     Each call to pushSparkline() adds one reading and removes the oldest
-     if the buffer is full — this mirrors how real satellite telemetry
-     systems manage rolling data windows.
-  ====================================================================== */
+     A rolling circular buffer of the last SPARKLINE_MAX temperature
+     readings. Each bar's height and colour reflects its value.
+  ===================================================================== */
   function pushSparkline(temp) {
     tempHistory.push(temp);
     if (tempHistory.length > SPARKLINE_MAX) tempHistory.shift();
@@ -1066,25 +983,19 @@
     }).join('');
   }
 
-  /* ======================================================================
+  /* =====================================================================
      CANVAS MULTI-METRIC TREND CHART
-     Draws three line series (temperature %, battery, signal) on an
-     HTML5 Canvas element using pure JavaScript — no chart library.
-
-     The Canvas API works like a virtual pen: you call beginPath(),
-     then moveTo() / lineTo() / bezierCurveTo() to trace shapes,
-     then stroke() to actually draw them. The entire canvas is cleared
-     and redrawn on every update.
-
-     All three metrics share the same Y-axis scale (0–100%) by
-     normalising temperature: (temp / 55) × 100.
-  ====================================================================== */
+     Draws three line series (temperature %, battery, signal) on a Canvas
+     element using only the native Canvas 2D API — no chart libraries.
+     Temperature is normalised to 0-100% by dividing by 55 so all three
+     metrics share the same Y-axis scale.
+  ===================================================================== */
   function pushChartData(reading) {
     chartHistory.push({
       id:      reading.id,
       temp:    reading.temperature,
       battery: reading.battery_level,
-      signal:  reading.signal_strength
+      signal:  reading.signal_strength,
     });
     if (chartHistory.length > CHART_MAX) chartHistory.shift();
     drawChart();
@@ -1094,10 +1005,8 @@
     const canvas = document.getElementById('trend-canvas');
     if (!canvas) return;
 
-    // Set the canvas pixel resolution to match its CSS display size.
-    // Without this, the canvas would render at its default 300×150px
-    // and be stretched/blurry. We also account for devicePixelRatio
-    // so the chart is sharp on high-DPI (Retina) displays.
+    // Match the canvas pixel resolution to its CSS display size, accounting
+    // for high-DPI (Retina) screens where devicePixelRatio > 1.
     const dpr  = window.devicePixelRatio || 1;
     const cW   = canvas.clientWidth  || 600;
     const cH   = canvas.clientHeight || 150;
@@ -1105,116 +1014,98 @@
     canvas.height = Math.round(cH * dpr);
 
     const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);  // scale for HiDPI
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cW, cH);
 
     const n = chartHistory.length;
-
     if (n < 2) {
-      // Not enough data yet — show a placeholder message
-      ctx.fillStyle = '#3a5a70';
-      ctx.font = '11px Share Tech Mono';
-      ctx.textAlign = 'center';
+      ctx.fillStyle  = '#3a5a70';
+      ctx.font       = '11px Share Tech Mono';
+      ctx.textAlign  = 'center';
       ctx.fillText('GENERATE READINGS TO SEE TREND', cW / 2, cH / 2);
       return;
     }
 
-    // Layout margins leave room for axis labels
-    const PAD  = { top: 20, right: 18, bottom: 26, left: 38 };
+    const PAD   = { top: 20, right: 18, bottom: 26, left: 38 };
     const plotW = cW - PAD.left - PAD.right;
     const plotH = cH - PAD.top  - PAD.bottom;
 
-    // ── Grid lines ──
-    // Draw a horizontal dashed line at 0, 25, 50, 75, 100%
+    // Horizontal grid lines at 0, 25, 50, 75, 100%
     ctx.setLineDash([3, 5]);
     ctx.lineWidth = 0.5;
     [0, 25, 50, 75, 100].forEach(v => {
       const y = PAD.top + plotH - (v / 100) * plotH;
       ctx.strokeStyle = 'rgba(26,64,96,.7)';
-      ctx.beginPath();
-      ctx.moveTo(PAD.left, y);
-      ctx.lineTo(PAD.left + plotW, y);
-      ctx.stroke();
-      // Y-axis label
-      ctx.fillStyle = '#3a5a70';
-      ctx.font = `${dpr < 2 ? 9 : 8}px Share Tech Mono`;
-      ctx.textAlign = 'right';
+      ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + plotW, y); ctx.stroke();
+      ctx.fillStyle  = '#3a5a70';
+      ctx.font       = `${dpr < 2 ? 9 : 8}px Share Tech Mono`;
+      ctx.textAlign  = 'right';
       ctx.fillText(v, PAD.left - 4, y + 3);
     });
-    ctx.setLineDash([]);  // reset to solid lines
+    ctx.setLineDash([]);
 
-    // ── Three data series ──
+    // Three data series — temperature is scaled to 0-100% for a shared Y axis
     const series = [
-      { key: 'temp',    color: '#00e676', label: 'TEMP %',    scale: v => (v / 55) * 100 },
-      { key: 'battery', color: '#00d4ff', label: 'BATTERY',   scale: v => v },
-      { key: 'signal',  color: '#ffaa00', label: 'SIGNAL',    scale: v => v },
+      { key: 'temp',    color: '#00e676', label: 'TEMP %',  scale: v => (v / 55) * 100 },
+      { key: 'battery', color: '#00d4ff', label: 'BATTERY', scale: v => v },
+      { key: 'signal',  color: '#ffaa00', label: 'SIGNAL',  scale: v => v },
     ];
 
     series.forEach(s => {
-      // Convert data to (x, y) canvas coordinates
       const points = chartHistory.map((d, i) => ({
         x: PAD.left + (n > 1 ? (i / (n - 1)) * plotW : plotW / 2),
-        y: PAD.top + plotH - (Math.max(0, Math.min(100, s.scale(d[s.key]))) / 100) * plotH
+        y: PAD.top  + plotH - (Math.max(0, Math.min(100, s.scale(d[s.key]))) / 100) * plotH,
       }));
 
-      // Draw the line with a bezier smooth curve between consecutive points.
-      // Using the midpoint between two consecutive points as the control
-      // point gives a natural smooth curve without overshooting.
+      // Bezier smooth curve: the midpoint between consecutive x-values is used
+      // as the control point, producing a natural arc without overshooting.
       ctx.strokeStyle = s.color;
       ctx.lineWidth   = 1.5;
       ctx.shadowBlur  = 5;
       ctx.shadowColor = s.color;
       ctx.beginPath();
       points.forEach((p, i) => {
-        if (i === 0) {
-          ctx.moveTo(p.x, p.y);
-        } else {
-          const prev = points[i - 1];
-          const cpX  = (prev.x + p.x) / 2;
-          ctx.bezierCurveTo(cpX, prev.y, cpX, p.y, p.x, p.y);
-        }
+        if (i === 0) { ctx.moveTo(p.x, p.y); return; }
+        const prev = points[i - 1];
+        const cpX  = (prev.x + p.x) / 2;
+        ctx.bezierCurveTo(cpX, prev.y, cpX, p.y, p.x, p.y);
       });
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Draw a small dot at each data point
       ctx.fillStyle = s.color;
       points.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2); ctx.fill();
       });
     });
 
-    // ── Legend ──
+    // Legend
     let lx = PAD.left;
     series.forEach(s => {
-      ctx.fillStyle   = s.color;
-      ctx.fillRect(lx, 5, 14, 3);
-      ctx.font        = '8px Orbitron';
-      ctx.textAlign   = 'left';
+      ctx.fillStyle  = s.color; ctx.fillRect(lx, 5, 14, 3);
+      ctx.font       = '8px Orbitron'; ctx.textAlign = 'left';
       ctx.fillText(s.label, lx + 18, 10);
       lx += 70;
     });
 
-    // ── X-axis: show first and last reading ID ──
-    ctx.fillStyle  = '#3a5a70';
-    ctx.font       = '8px Share Tech Mono';
-    ctx.textAlign  = 'center';
-    ctx.fillText(`#${chartHistory[0].id}`,   PAD.left,           cH - 6);
-    ctx.fillText(`#${chartHistory[n-1].id}`, PAD.left + plotW,   cH - 6);
-    ctx.fillText('← READING ID →',          PAD.left + plotW/2, cH - 6);
+    // X-axis: first and last record IDs
+    ctx.fillStyle = '#3a5a70'; ctx.font = '8px Share Tech Mono'; ctx.textAlign = 'center';
+    ctx.fillText(`#${chartHistory[0].id}`,     PAD.left,          cH - 6);
+    ctx.fillText(`#${chartHistory[n-1].id}`,   PAD.left + plotW,  cH - 6);
+    ctx.fillText('← READING ID →',            PAD.left + plotW/2, cH - 6);
   }
 
-  /* ======================================================================
-     LIVE PANEL UPDATE — called after every new reading
-  ====================================================================== */
+  /* =====================================================================
+     LIVE PANEL UPDATE
+     Called after every successful generateOne() to paint the latest
+     sensor values into the live telemetry panel.
+  ===================================================================== */
   function updateLivePanel(d) {
     document.getElementById('record-id-tag').textContent  = `ID ${d.id}`;
     document.getElementById('val-timestamp').textContent  = formatTs(d.timestamp);
     document.getElementById('sb-last-update').textContent = formatTs(d.timestamp);
 
-    // Temperature (flat bar)
+    // Temperature flat bar
     document.getElementById('val-temp').innerHTML =
       `${d.temperature}<span class="unit">°C</span>`;
     flashEl('val-temp');
@@ -1224,36 +1115,41 @@
     tBar.className   = 'bar-fill ' +
       (d.temperature > 40 ? 'red' : d.temperature > 30 ? 'amber' : 'green');
 
-    // Battery arc gauge
     updateGauge('batt', d.battery_level);
+    updateGauge('sig',  d.signal_strength);
 
-    // Signal arc gauge
-    updateGauge('sig', d.signal_strength);
-
-    // Subsystem status badge
     const badge = document.getElementById('status-badge');
     badge.className   = `status-badge ${d.subsystem_status}`;
     badge.textContent = `● ${d.subsystem_status.toUpperCase()}`;
+
     document.getElementById('val-subsystem').innerHTML =
       `<span class="status-pill ${d.subsystem_status}">${d.subsystem_status.toUpperCase()}</span>`;
 
-    // Update visualisations
     pushSparkline(d.temperature);
     pushChartData(d);
   }
 
-  /* ======================================================================
-     GENERATE ONE — POST /telemetry
-  ====================================================================== */
+  /* =====================================================================
+     GENERATE ONE  —  POST /telemetry
+     FIX 1: Added JSON_HEADERS so app.py v3.2 accepts the request.
+             Without Content-Type: application/json the server returns
+             HTTP 415 Unsupported Media Type and no data is created.
+     FIX 2: Response data is at result.data (v3.2 unified contract).
+  ===================================================================== */
   async function generateOne() {
     try {
-      const data = await apiFetch('/telemetry', { method: 'POST' });
-      const d    = data.data;
+      const result = await apiFetch('/telemetry', {
+        method:  'POST',
+        headers: JSON_HEADERS,   // FIX: required by app.py v3.2
+        body:    JSON.stringify({}),
+      });
+
+      // FIX: the record is nested under result.data, not at the top level
+      const d = result.data;
       updateLivePanel(d);
 
       sessionCount++;
-      document.getElementById('sb-session').textContent =
-        `${sessionCount} generated`;
+      document.getElementById('sb-session').textContent = `${sessionCount} generated`;
 
       const s = d.subsystem_status;
       logEvent(
@@ -1263,57 +1159,70 @@
       toast(`#${d.id} saved — ${s.toUpperCase()}`,
         s === 'nominal' ? 'success' : s === 'warning' ? 'info' : 'error');
 
-      // Refresh supporting panels concurrently
+      // Refresh all supporting panels concurrently — they are independent
       Promise.all([ loadStats(), loadHistory(historyPage), loadAnomalies() ]);
+
     } catch (err) {
       logEvent(`Generate failed: ${err.message}`, 'error');
       toast(`Generate failed: ${err.message}`, 'error');
     }
   }
 
-  /* ======================================================================
-     BULK GENERATE — POST /telemetry/bulk?count=N
-  ====================================================================== */
+  /* =====================================================================
+     BULK GENERATE  —  POST /telemetry/bulk?count=N
+     FIX 1: Added JSON_HEADERS (same reason as generateOne).
+     FIX 2: Inserted count is at result.data.records_inserted (v3.2).
+  ===================================================================== */
   async function generateBulk() {
     const count = parseInt(document.getElementById('bulk-count').value) || 10;
     try {
-      const data = await apiFetch(`/telemetry/bulk?count=${count}`, { method: 'POST' });
-      logEvent(`Bulk insert: ${data.records_inserted} records added`, 'info');
-      toast(`✓ Inserted ${data.records_inserted} records`, 'success');
+      const result = await apiFetch(`/telemetry/bulk?count=${count}`, {
+        method:  'POST',
+        headers: JSON_HEADERS,   // FIX: required by app.py v3.2
+      });
+
+      // FIX: records_inserted lives at result.data.records_inserted
+      const inserted = result.data.records_inserted;
+      logEvent(`Bulk insert: ${inserted} records added`, 'info');
+      toast(`✓ Inserted ${inserted} records`, 'success');
       Promise.all([ loadStats(), loadHistory(1), loadAnomalies() ]);
+
     } catch (err) {
       logEvent(`Bulk insert failed: ${err.message}`, 'error');
       toast(`Bulk failed: ${err.message}`, 'error');
     }
   }
 
-  /* ======================================================================
-     PRUNE OLD RECORDS — DELETE /telemetry/old?keep=N
-     Confirms with the user before deleting, since this is destructive.
-  ====================================================================== */
+  /* =====================================================================
+     PRUNE OLD RECORDS  —  DELETE /telemetry/old?keep=N
+     FIX: records_deleted lives at result.data.records_deleted (v3.2).
+  ===================================================================== */
   async function pruneRecords() {
     const keep = parseInt(document.getElementById('prune-keep').value) || 1000;
     if (!confirm(`Delete all but the most recent ${keep} records?\nThis cannot be undone.`)) return;
     try {
-      const data = await apiFetch(`/telemetry/old?keep=${keep}`, { method: 'DELETE' });
+      const result = await apiFetch(`/telemetry/old?keep=${keep}`, { method: 'DELETE' });
+
+      // FIX: records_deleted is nested under result.data
+      const deleted = result.data.records_deleted;
       logEvent(
-        data.records_deleted
-          ? `Pruned ${data.records_deleted} old records (kept last ${keep})`
+        deleted
+          ? `Pruned ${deleted} old records (kept last ${keep})`
           : `No pruning needed (total records ≤ ${keep})`,
         'warn'
       );
-      toast(data.records_deleted
-        ? `Pruned ${data.records_deleted} records` : 'Nothing to prune', 'info');
+      toast(deleted ? `Pruned ${deleted} records` : 'Nothing to prune', 'info');
       Promise.all([ loadStats(), loadHistory(1) ]);
+
     } catch (err) {
       logEvent(`Prune failed: ${err.message}`, 'error');
       toast(`Prune failed: ${err.message}`, 'error');
     }
   }
 
-  /* ======================================================================
-     AUTO-REFRESH — setInterval with configurable interval
-  ====================================================================== */
+  /* =====================================================================
+     AUTO-REFRESH
+  ===================================================================== */
   function toggleAuto() {
     const btn      = document.getElementById('auto-btn');
     const interval = parseInt(document.getElementById('auto-interval').value);
@@ -1332,21 +1241,24 @@
     }
   }
 
-  /* ======================================================================
+  /* =====================================================================
      SEARCH PANEL
-  ====================================================================== */
+  ===================================================================== */
   function toggleSearch() {
     searchOpen = !searchOpen;
     document.getElementById('search-panel').classList.toggle('open', searchOpen);
     document.getElementById('search-btn').classList.toggle('active', searchOpen);
   }
 
+  /* =====================================================================
+     SEARCH  —  GET /telemetry/search
+     FIX: records array is at result.data (v3.2 renamed from "records").
+  ===================================================================== */
   async function runSearch(page = 1) {
     searchPage = page;
-    document.getElementById('search-page-tag').textContent = `PAGE ${page}`;
+    document.getElementById('search-page-tag').textContent    = `PAGE ${page}`;
     document.getElementById('search-results-section').style.display = 'block';
 
-    // URLSearchParams handles all URL encoding — no manual escaping needed
     const params = new URLSearchParams();
     const sf = id => document.getElementById(id).value || null;
     if (sf('sf-status'))   params.set('status',      sf('sf-status'));
@@ -1360,14 +1272,18 @@
     params.set('limit', SEARCH_LIMIT);
 
     try {
-      const data = await apiFetch(`/telemetry/search?${params}`);
-      renderTable('search-body', data.records, true);
-      const p = data.pagination;
+      const result = await apiFetch(`/telemetry/search?${params}`);
+
+      // FIX: v3.2 renamed the array key from "records" to "data"
+      renderTable('search-body', result.data, true);
+
+      const p = result.pagination;
       document.getElementById('search-info').textContent =
         `${p.total_records} MATCHES — PAGE ${p.current_page} / ${p.total_pages}`;
       document.getElementById('spg-prev').disabled = !p.has_prev;
       document.getElementById('spg-next').disabled = !p.has_next;
       logEvent(`Search returned ${p.total_records} record(s)`, 'info');
+
     } catch (err) {
       document.getElementById('search-body').innerHTML =
         `<tr><td colspan="7" class="empty-state" style="color:var(--red)">ERROR: ${err.message}</td></tr>`;
@@ -1381,25 +1297,27 @@
     searchPage = 1;
   }
 
-  /* ======================================================================
-     TABLE RENDERER — used by both history and search
-     Now includes click-to-expand rows with full record detail.
-  ====================================================================== */
-  // Helper colour functions keep the template literals readable
+  /* =====================================================================
+     TABLE RENDERER  —  used by history and search
+     Helper colour functions map sensor values to CSS colour variables
+     so every table cell reflects the same severity thresholds as the
+     gauges and the sparkline.
+  ===================================================================== */
   const tC = t => t > 40 ? 'var(--red)'   : t > 30 ? 'var(--amber)' : 'var(--text)';
   const bC = b => b < 30 ? 'var(--red)'   : b < 60 ? 'var(--amber)' : 'var(--text)';
   const sC = s => s < 30 ? 'var(--red)'   : s < 60 ? 'var(--amber)' : 'var(--text)';
 
-  function renderTable(tbodyId, records, withExpand = false) {
+  function renderTable(tbodyId, records) {
     const tbody = document.getElementById(tbodyId);
-    if (!records.length) {
+
+    // Guard: handle null, undefined, or empty arrays gracefully
+    if (!records || !records.length) {
       tbody.innerHTML =
         `<tr><td colspan="7" class="empty-state">NO RECORDS FOUND</td></tr>`;
       return;
     }
 
     tbody.innerHTML = records.map(r => `
-      <!-- Main data row — clicking it calls toggleRow() -->
       <tr class="data-row" id="row-${tbodyId}-${r.id}"
           onclick="toggleRow('${tbodyId}', ${r.id})">
         <td><span class="expand-icon">▸</span></td>
@@ -1410,7 +1328,6 @@
         <td style="color:${sC(r.signal_strength)}">${r.signal_strength}</td>
         <td><span class="status-pill ${r.subsystem_status}">${r.subsystem_status.toUpperCase()}</span></td>
       </tr>
-      <!-- Hidden detail row — revealed when the main row is clicked -->
       <tr class="detail-row" id="detail-${tbodyId}-${r.id}" style="display:none">
         <td colspan="7">
           <div class="detail-content">
@@ -1453,7 +1370,7 @@
     const detail = document.getElementById(`detail-${tbodyId}-${id}`);
     const isOpen = detail.style.display !== 'none';
 
-    // Close ALL expanded rows in this table before opening a new one
+    // Close all other expanded rows first for a clean accordion behaviour
     document.querySelectorAll(`#${tbodyId} .detail-row`).forEach(r => r.style.display = 'none');
     document.querySelectorAll(`#${tbodyId} .data-row`).forEach(r => r.classList.remove('expanded'));
 
@@ -1463,21 +1380,27 @@
     }
   }
 
-  /* ======================================================================
-     STATS — GET /telemetry/stats (with animated count-up)
-  ====================================================================== */
+  /* =====================================================================
+     STATS  —  GET /telemetry/stats
+     FIX: v3.2 renamed the response key from "stats" to "data".
+          The original crash was: const { stats: s } = result → s = undefined
+          → s.total_records throws "Cannot read properties of undefined".
+  ===================================================================== */
   async function loadStats() {
     try {
-      const { stats: s } = await apiFetch('/telemetry/stats');
+      const result = await apiFetch('/telemetry/stats');
 
-      animateCount(document.getElementById('stat-total'),    s.total_records    ?? 0, '');
-      animateCount(document.getElementById('stat-avg-temp'), s.avg_temperature  ?? 0, ' °C', 1);
-      animateCount(document.getElementById('stat-min-temp'), s.min_temperature  ?? 0, ' °C', 1);
-      animateCount(document.getElementById('stat-max-temp'), s.max_temperature  ?? 0, ' °C', 1);
-      animateCount(document.getElementById('stat-avg-batt'), s.avg_battery      ?? 0, ' %',  1);
-      animateCount(document.getElementById('stat-min-batt'), s.min_battery      ?? 0, ' %');
-      animateCount(document.getElementById('stat-avg-sig'),  s.avg_signal       ?? 0, ' %',  1);
-      animateCount(document.getElementById('stat-anomalies'),s.anomaly_count    ?? 0, '');
+      // FIX: destructure "data" not "stats" — this was the original crash point
+      const s = result.data;
+
+      animateCount(document.getElementById('stat-total'),     s.total_records   ?? 0, '');
+      animateCount(document.getElementById('stat-avg-temp'),  s.avg_temperature ?? 0, ' °C', 1);
+      animateCount(document.getElementById('stat-min-temp'),  s.min_temperature ?? 0, ' °C', 1);
+      animateCount(document.getElementById('stat-max-temp'),  s.max_temperature ?? 0, ' °C', 1);
+      animateCount(document.getElementById('stat-avg-batt'),  s.avg_battery     ?? 0, ' %',  1);
+      animateCount(document.getElementById('stat-min-batt'),  s.min_battery     ?? 0, ' %');
+      animateCount(document.getElementById('stat-avg-sig'),   s.avg_signal      ?? 0, ' %',  1);
+      animateCount(document.getElementById('stat-anomalies'), s.anomaly_count   ?? 0, '');
 
       document.getElementById('stat-first').textContent = formatTs(s.first_reading);
       document.getElementById('stat-last').textContent  = formatTs(s.last_reading);
@@ -1488,23 +1411,33 @@
 
       document.getElementById('sb-total').textContent     = s.total_records ?? '—';
       document.getElementById('sb-anomalies').textContent = s.anomaly_count ?? '—';
-    } catch (e) { console.warn('Stats failed:', e.message); }
+
+    } catch (e) {
+      console.warn('Stats failed:', e.message);
+    }
   }
 
-  /* ======================================================================
-     HISTORY TABLE — GET /telemetry/history
-  ====================================================================== */
+  /* =====================================================================
+     HISTORY TABLE  —  GET /telemetry/history
+     FIX: v3.2 renamed the records array from "records" to "data".
+  ===================================================================== */
   async function loadHistory(page = 1) {
     historyPage = page;
     document.getElementById('history-page-tag').textContent = `PAGE ${page}`;
     try {
-      const data = await apiFetch(`/telemetry/history?page=${page}&limit=${HISTORY_LIMIT}`);
-      renderTable('history-body', data.records);
-      const p = data.pagination;
+      const result = await apiFetch(
+        `/telemetry/history?page=${page}&limit=${HISTORY_LIMIT}`
+      );
+
+      // FIX: the records array is at result.data, not result.records
+      renderTable('history-body', result.data);
+
+      const p = result.pagination;
       document.getElementById('history-info').textContent =
         `${p.total_records} RECORDS — PAGE ${p.current_page} / ${p.total_pages}`;
       document.getElementById('pg-prev').disabled = !p.has_prev;
       document.getElementById('pg-next').disabled = !p.has_next;
+
     } catch (err) {
       document.getElementById('history-body').innerHTML =
         `<tr><td colspan="7" class="empty-state" style="color:var(--red)">ERROR: ${err.message}</td></tr>`;
@@ -1513,18 +1446,22 @@
 
   function changePage(delta) { loadHistory(historyPage + delta); }
 
-  /* ======================================================================
-     ANOMALY FEED — GET /telemetry/anomalies
-  ====================================================================== */
+  /* =====================================================================
+     ANOMALY FEED  —  GET /telemetry/anomalies
+     FIX: v3.2 renamed the records array from "records" to "data".
+  ===================================================================== */
   async function loadAnomalies() {
     try {
-      const { records } = await apiFetch('/telemetry/anomalies?limit=20');
-      const feed     = document.getElementById('anomaly-feed');
+      const result = await apiFetch('/telemetry/anomalies?limit=20');
+
+      // FIX: the array is at result.data, not result.records
+      const records   = result.data;
+      const feed      = document.getElementById('anomaly-feed');
       const prevCount = parseInt(document.getElementById('anomaly-count-tag').textContent) || 0;
 
       document.getElementById('anomaly-count-tag').textContent = records.length;
 
-      // Log new anomalies that weren't there before
+      // Log a new event only if the anomaly count increased since last check
       if (records.length > prevCount) {
         const newest = records[0];
         logEvent(
@@ -1554,15 +1491,16 @@
           </div>
         </div>
       `).join('');
+
     } catch (err) {
       document.getElementById('anomaly-feed').innerHTML =
         `<div class="empty-state" style="color:var(--red)">ERROR: ${err.message}</div>`;
     }
   }
 
-  /* ======================================================================
-     LIVE CLOCK
-  ====================================================================== */
+  /* =====================================================================
+     LIVE CLOCK  —  updates every second using the browser's UTC clock
+  ===================================================================== */
   function startClock() {
     const tick = () => {
       document.getElementById('clock').textContent =
@@ -1572,23 +1510,23 @@
     setInterval(tick, 1000);
   }
 
-  /* ======================================================================
+  /* =====================================================================
      CANVAS RESIZE OBSERVER
-     Redraws the chart whenever the container width changes
-     (e.g. window resize or panel layout shift).
-  ====================================================================== */
+     Redraws the chart whenever the container resizes (e.g. window resize).
+  ===================================================================== */
   function setupChartResize() {
     const canvas = document.getElementById('trend-canvas');
     if (!canvas || !window.ResizeObserver) return;
     new ResizeObserver(() => drawChart()).observe(canvas.parentElement);
   }
 
-  /* ======================================================================
+  /* =====================================================================
      KEYBOARD SHORTCUTS
-  ====================================================================== */
+     Ignored when the user is typing in an input field.
+  ===================================================================== */
   document.addEventListener('keydown', e => {
     const tag = document.activeElement.tagName;
-    if (['INPUT','SELECT','TEXTAREA'].includes(tag)) return;
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)) return;
     const k = e.key.toUpperCase();
     if (k === 'G') generateOne();
     if (k === 'B') generateBulk();
@@ -1597,9 +1535,14 @@
     if (k === 'P') pruneRecords();
   });
 
-  /* ======================================================================
+  /* =====================================================================
      INITIALISATION
-  ====================================================================== */
+     The order matters here: we start the clock and chart resize observer
+     first (synchronous, zero cost), then fire all three read-only panel
+     loaders concurrently via Promise.all (they are independent of each
+     other), then finally generate the first live reading to seed the
+     gauges, sparkline, and trend chart.
+  ===================================================================== */
   async function init() {
     startClock();
     setupChartResize();
@@ -1609,10 +1552,10 @@
     checkHealth();
     setInterval(checkHealth, 30_000);
 
-    // Load all supporting panels concurrently (they are independent)
+    // Load all display panels concurrently — no dependency between them
     await Promise.all([ loadStats(), loadHistory(1), loadAnomalies() ]);
 
-    // Generate the first live reading (this also seeds the chart + sparkline)
+    // Generate the first reading to populate the live telemetry panel
     await generateOne();
     logEvent('Initial telemetry reading complete', 'system');
   }
